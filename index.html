@@ -1,0 +1,140 @@
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>ChMS La Shekinah</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            },
+            colors: {
+              brand: {
+                blue: '#0ea5e9', // Sky 500 - Vibrant, Friendly Primary
+                dark: '#0284c7', // Sky 600 - For Text/Hover
+                light: '#bae6fd', // Sky 200 - Accents
+                soft: '#f0f9ff', // Sky 50 - Very light backgrounds
+                navy: '#0c4a6e', // Sky 900 - For heavy contrast text
+              },
+              accent: {
+                green: '#34d399', // Emerald 400 - Softer Green
+                gold: '#fbbf24', // Amber 400 - Softer Gold
+                purple: '#a78bfa', // Violet 400 - Softer Purple
+              }
+            },
+            boxShadow: {
+              'soft': '0 4px 30px -4px rgba(14, 165, 233, 0.1)',
+              'glow': '0 8px 30px -4px rgba(14, 165, 233, 0.4)',
+              'card': '0 2px 10px rgba(0,0,0,0.03)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* Hide scrollbar for Chrome, Safari and Opera (for .no-scrollbar utility) */
+      .no-scrollbar::-webkit-scrollbar {
+          display: none;
+      }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+      }
+
+      /* Custom Global Scrollbar - Sleek Blue */
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f5f9; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #93c5fd; 
+        border-radius: 6px;
+        border: 2px solid #f1f5f9;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #60a5fa; 
+      }
+
+      body {
+        background-color: #f8fafc;
+      }
+      /* Smooth transitions */
+      .page-transition {
+        animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
+      .animate-slideUp { animation: slideUp 0.4s ease-out; }
+
+      /* Modern Button Hover Effect */
+      .btn-hover {
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .btn-hover:active {
+        transform: scale(0.95);
+      }
+
+      /* PRINT STYLES */
+      @media print {
+        body {
+          background-color: white;
+        }
+        nav, header, aside, .no-print {
+          display: none !important;
+        }
+        main {
+          padding: 0 !important;
+          margin: 0 !important;
+          overflow: visible !important;
+        }
+        .print-only-visible {
+          display: block !important;
+          position: static !important;
+          width: 100% !important;
+          height: auto !important;
+          transform: none !important;
+          box-shadow: none !important;
+          border: none !important;
+        }
+        /* Hide all other modals or overlays */
+        .fixed:not(.print-only-visible) {
+          display: none !important;
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6"
+  }
+}
+</script>
+</head>
+  <body class="bg-slate-50 text-slate-800 antialiased selection:bg-brand-light selection:text-brand-navy">
+    <div id="root"></div>
+  </body>
+</html>
