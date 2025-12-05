@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../App.tsx';
 import { Member, IntercesionLog } from '../types';
-import { Flame, Star, Calendar, Users, Award, ChevronRight, AlertCircle, Trophy, UserPlus, Check, X, Search, Trash2, Download } from 'lucide-react';
+import { Flame, Star, Calendar, Users, Award, ChevronRight, AlertCircle, Trophy, UserPlus, Check, X, Search, Trash2, Download, PieChart, CheckCircle2 } from 'lucide-react';
 
 const Intercesion: React.FC = () => {
   const { intercesionGroups, members, intercesionLogs, logIntercesionAttendance, assignIntercesionGroup, currentUser, notify } = useApp();
@@ -77,6 +77,28 @@ const Intercesion: React.FC = () => {
       m.nombres.toLowerCase().includes(searchMemberTerm.toLowerCase()) &&
       !m.intercesionGroupId // Show only members not already in a group
   );
+
+  // Statistics Helper
+  const getAttendanceStats = (groupId: string, date: string, typePrefix: string) => {
+      const groupMembers = getGroupMembers(groupId);
+      if (groupMembers.length === 0) return { present: 0, total: 0, percent: 0 };
+      
+      let presentCount = 0;
+      groupMembers.forEach(m => {
+          const isPresent = intercesionLogs.some(l => 
+              l.memberId === m.id && 
+              l.fecha === date && 
+              l.tipo.startsWith(typePrefix)
+          );
+          if (isPresent) presentCount++;
+      });
+
+      return {
+          present: presentCount,
+          total: groupMembers.length,
+          percent: Math.round((presentCount / groupMembers.length) * 100)
+      };
+  };
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -186,6 +208,31 @@ const Intercesion: React.FC = () => {
                   </div>
               </div>
 
+              {/* LIVE STATS PANEL */}
+              {(() => {
+                  const typePrefix = activeTab === 'MIERCOLES' ? 'MIERCOLES' : 'AYUNO';
+                  const stats = getAttendanceStats(selectedGroupId, attendanceDate, typePrefix);
+                  
+                  return (
+                      <div className="bg-slate-50 p-4 rounded-2xl mb-6 flex justify-between items-center border border-slate-100">
+                          <div className="flex items-center gap-3">
+                              <div className="bg-white p-2 rounded-full shadow-sm">
+                                  <PieChart className="w-5 h-5 text-slate-500" />
+                              </div>
+                              <div>
+                                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Asistencia Hoy</p>
+                                  <p className="text-lg font-bold text-slate-700">{stats.present} / {stats.total} <span className="text-sm text-slate-400 font-normal">miembros</span></p>
+                              </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                              <div className="text-right">
+                                  <p className={`text-2xl font-extrabold ${stats.percent >= 80 ? 'text-emerald-500' : stats.percent >= 50 ? 'text-amber-500' : 'text-red-500'}`}>{stats.percent}%</p>
+                              </div>
+                          </div>
+                      </div>
+                  );
+              })()}
+
               <div className="space-y-2">
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                       {activeTab === 'AYUNO' && <Flame className="w-4 h-4 text-orange-500" />}
@@ -214,12 +261,16 @@ const Intercesion: React.FC = () => {
                           {activeTab === 'MIERCOLES' ? (
                               <label className="flex items-center cursor-pointer gap-3">
                                   <span className="text-xs font-bold text-slate-400 uppercase">Presente</span>
-                                  <input 
-                                    type="checkbox" 
-                                    className="w-6 h-6 rounded-md text-red-600 focus:ring-red-500"
-                                    checked={intercesionLogs.some(l => l.memberId === member.id && l.fecha === attendanceDate && l.tipo === 'MIERCOLES')}
-                                    onChange={(e) => logIntercesionAttendance(attendanceDate, 'MIERCOLES', member.id, e.target.checked)}
-                                  />
+                                  <div className="relative">
+                                      <input 
+                                        type="checkbox" 
+                                        className="peer sr-only"
+                                        checked={intercesionLogs.some(l => l.memberId === member.id && l.fecha === attendanceDate && l.tipo === 'MIERCOLES')}
+                                        onChange={(e) => logIntercesionAttendance(attendanceDate, 'MIERCOLES', member.id, e.target.checked)}
+                                      />
+                                      <div className="w-10 h-6 bg-slate-200 rounded-full peer-checked:bg-emerald-500 transition-colors"></div>
+                                      <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></div>
+                                  </div>
                               </label>
                           ) : (
                               <div className="flex gap-4">
@@ -227,14 +278,17 @@ const Intercesion: React.FC = () => {
                                       const type = idx === 0 ? 'AYUNO_DIA_1' : idx === 1 ? 'AYUNO_DIA_2' : 'AYUNO_DIA_3';
                                       const isChecked = intercesionLogs.some(l => l.memberId === member.id && l.fecha === attendanceDate && l.tipo === type);
                                       return (
-                                          <label key={type} className="flex flex-col items-center cursor-pointer gap-1">
-                                              <span className="text-[10px] font-bold text-slate-400 uppercase">{dayLabel}</span>
-                                              <input 
-                                                type="checkbox" 
-                                                className="w-5 h-5 rounded text-orange-600 focus:ring-orange-500"
-                                                checked={isChecked}
-                                                onChange={(e) => logIntercesionAttendance(attendanceDate, type as any, member.id, e.target.checked)}
-                                              />
+                                          <label key={type} className="flex flex-col items-center cursor-pointer gap-1 group/check">
+                                              <span className="text-[10px] font-bold text-slate-400 uppercase group-hover/check:text-orange-500 transition-colors">{dayLabel}</span>
+                                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all ${isChecked ? 'bg-orange-500 border-orange-500 text-white' : 'bg-white border-slate-200 text-transparent hover:border-orange-300'}`}>
+                                                  <Check className="w-5 h-5" />
+                                                  <input 
+                                                    type="checkbox" 
+                                                    className="hidden"
+                                                    checked={isChecked}
+                                                    onChange={(e) => logIntercesionAttendance(attendanceDate, type as any, member.id, e.target.checked)}
+                                                  />
+                                              </div>
                                           </label>
                                       );
                                   })}
