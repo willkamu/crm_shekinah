@@ -2,10 +2,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../App.tsx';
 import { MissionTrip, TripParticipant } from '../types';
-import { Plane, Calendar, MapPin, UserPlus, Check, X, Shield, Music, Mic2, Users, Search, AlertCircle, Lock, CheckSquare, ListChecks } from 'lucide-react';
+import { Plane, Calendar, MapPin, UserPlus, Check, X, Shield, Music, Mic2, Users, Search, AlertCircle, Lock, CheckSquare, ListChecks, Flame, Star } from 'lucide-react';
 
 const Viajes: React.FC = () => {
-  const { trips, members, addTrip, updateTrip, currentUser, notify, markTripAttendance } = useApp();
+  const { trips, members, addTrip, updateTrip, currentUser, notify, markTripAttendance, intercesionLogs } = useApp();
   const [isCreating, setIsCreating] = useState(false);
 
   // New Trip Form State
@@ -18,6 +18,7 @@ const Viajes: React.FC = () => {
   const [searchMember, setSearchMember] = useState('');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<TripParticipant['role']>('APOYO');
+  const [proposalTab, setProposalTab] = useState<'INTERCESORES' | 'GENERAL'>('INTERCESORES'); // New Logic
 
   // Lock Confirmation State
   const [tripToLock, setTripToLock] = useState<string | null>(null);
@@ -26,6 +27,16 @@ const Viajes: React.FC = () => {
   const [executionTrip, setExecutionTrip] = useState<MissionTrip | null>(null);
 
   const isPastor = currentUser.role === 'PASTOR_PRINCIPAL';
+
+  // Helper to check stars (copy logic from Intercesion.tsx for consistency)
+  const getStars = (memberId: string) => {
+      const logCount = intercesionLogs.filter(l => l.memberId === memberId).length;
+      if (logCount > 10) return 5;
+      if (logCount > 7) return 4;
+      if (logCount > 4) return 3;
+      if (logCount > 1) return 2;
+      return 1;
+  };
 
   const handleCreateTrip = () => {
       if (!newTripDestino || !newTripFecha) return;
@@ -51,7 +62,20 @@ const Viajes: React.FC = () => {
       setSearchMember('');
       setSelectedMemberId(null);
       setSelectedRole('APOYO');
+      setProposalTab('INTERCESORES'); // Default to Priority
       setIsProposeOpen(true);
+  };
+
+  const handleMemberSelect = (member: any) => {
+      setSelectedMemberId(member.id);
+      // Auto-assign role based on ministry profile
+      if (member.intercesionGroupId) {
+          setSelectedRole('INTERCESOR');
+      } else if (member.ministryRoles && Object.values(member.ministryRoles).some((r: any) => r.toLowerCase().includes('músico') || r.toLowerCase().includes('corista'))) {
+          setSelectedRole('MUSICO');
+      } else {
+          setSelectedRole('APOYO');
+      }
   };
 
   const handleConfirmProposal = () => {
@@ -72,7 +96,7 @@ const Viajes: React.FC = () => {
           
           updateTrip(activeTripId, { participants: [...trip.participants, newParticipant] });
           setIsProposeOpen(false);
-          notify(isPastor ? "Participante agregado y aprobado" : "Propuesta enviada");
+          notify(isPastor ? "Participante agregado y aprobado" : "Propuesta enviada al Pastor");
       }
   };
 
@@ -108,9 +132,26 @@ const Viajes: React.FC = () => {
       }
   };
 
-  const filteredMembers = members.filter(m => 
-      m.nombres.toLowerCase().includes(searchMember.toLowerCase())
-  );
+  // Filter members logic (PDF Logic Implementation)
+  const getFilteredMembersForProposal = () => {
+      let baseMembers = members;
+
+      // Rule: Leaders only see their annex
+      if (currentUser.role === 'LIDER_ANEXO' && currentUser.anexoId !== 'ALL') {
+          baseMembers = baseMembers.filter(m => m.anexoId === currentUser.anexoId);
+      }
+
+      // Filter by Tab (Logic: Intercessors who Fast)
+      if (proposalTab === 'INTERCESORES') {
+          return baseMembers.filter(m => 
+              m.nombres.toLowerCase().includes(searchMember.toLowerCase()) &&
+              m.intercesionGroupId && // Must belong to a group
+              getStars(m.id) >= 3     // Must have >= 3 Stars (Implies active fasting/attendance)
+          );
+      } else {
+          return baseMembers.filter(m => m.nombres.toLowerCase().includes(searchMember.toLowerCase()));
+      }
+  };
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -125,12 +166,15 @@ const Viajes: React.FC = () => {
                 <p className="text-sm text-slate-500 font-medium">Extensión del Reino</p>
             </div>
         </div>
-        <button 
-            onClick={() => setIsCreating(true)}
-            className="bg-sky-600 text-white px-5 py-3 rounded-2xl flex items-center shadow-glow hover:bg-sky-700 transition-all btn-hover"
-        >
-            <Calendar className="w-5 h-5 md:mr-1.5" /> <span className="hidden md:inline font-bold text-sm">Programar Viaje</span>
-        </button>
+        {/* Only Pastor/Ministers can create trips */}
+        {(isPastor || currentUser.role === 'MINISTRO') && (
+            <button 
+                onClick={() => setIsCreating(true)}
+                className="bg-sky-600 text-white px-5 py-3 rounded-2xl flex items-center shadow-glow hover:bg-sky-700 transition-all btn-hover"
+            >
+                <Calendar className="w-5 h-5 md:mr-1.5" /> <span className="hidden md:inline font-bold text-sm">Programar Viaje</span>
+            </button>
+        )}
       </div>
 
       {/* New Trip Form */}
@@ -211,8 +255,8 @@ const Viajes: React.FC = () => {
                                       <div className="flex items-center gap-2">
                                           {p.status === 'PROPUESTO' && isPastor ? (
                                               <>
-                                                  <button onClick={() => handleApproveParticipant(trip.id, p.memberId, true)} className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200"><Check className="w-3 h-3" /></button>
-                                                  <button onClick={() => handleApproveParticipant(trip.id, p.memberId, false)} className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"><X className="w-3 h-3" /></button>
+                                                  <button onClick={() => handleApproveParticipant(trip.id, p.memberId, true)} className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200" title="Aprobar"><Check className="w-3 h-3" /></button>
+                                                  <button onClick={() => handleApproveParticipant(trip.id, p.memberId, false)} className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" title="Rechazar"><X className="w-3 h-3" /></button>
                                               </>
                                           ) : (
                                               <div className="flex flex-col items-end">
@@ -273,7 +317,32 @@ const Viajes: React.FC = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
               <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 relative h-[80vh] flex flex-col border border-white/50">
                   <button onClick={() => setIsProposeOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-5 h-5"/></button>
-                  <h3 className="text-xl font-bold text-slate-800 mb-4">Proponer Participante</h3>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">Proponer Participante</h3>
+                  
+                  {/* TABS FOR FILTERING */}
+                  <div className="flex bg-slate-100 p-1 rounded-xl mb-4">
+                      <button 
+                        onClick={() => setProposalTab('INTERCESORES')}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex justify-center items-center gap-1 ${proposalTab === 'INTERCESORES' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-400'}`}
+                      >
+                          <Flame className="w-3 h-3" /> Intercesores Aptos
+                      </button>
+                      <button 
+                        onClick={() => setProposalTab('GENERAL')}
+                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${proposalTab === 'GENERAL' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}
+                      >
+                          Toda la Iglesia
+                      </button>
+                  </div>
+
+                  <div className="bg-sky-50 p-3 rounded-xl mb-4 border border-sky-100">
+                      <p className="text-xs text-sky-800 flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4"/>
+                          {proposalTab === 'INTERCESORES' 
+                            ? 'Mostrando solo miembros con Ranking de Intercesión alto (3+ Estrellas).'
+                            : 'Buscando en toda la base de datos.'}
+                      </p>
+                  </div>
                   
                   {/* Search */}
                   <div className="relative mb-4">
@@ -289,25 +358,33 @@ const Viajes: React.FC = () => {
 
                   {/* List */}
                   <div className="flex-1 overflow-y-auto space-y-2 mb-4 pr-2 custom-scrollbar">
-                      {filteredMembers.map(m => (
+                      {getFilteredMembersForProposal().map(m => (
                           <div 
                             key={m.id} 
-                            onClick={() => setSelectedMemberId(m.id)}
+                            onClick={() => handleMemberSelect(m)}
                             className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors border ${selectedMemberId === m.id ? 'bg-sky-50 border-sky-400' : 'bg-white border-slate-100 hover:border-slate-300'}`}
                           >
                               <img src={m.photoUrl} className="w-10 h-10 rounded-full bg-slate-200 object-cover" />
-                              <div>
-                                  <p className="font-bold text-slate-800 text-sm">{m.nombres}</p>
+                              <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                      <p className="font-bold text-slate-800 text-sm">{m.nombres}</p>
+                                      {m.intercesionGroupId && (
+                                          <div className="flex text-amber-400 text-[10px]">
+                                              {[...Array(getStars(m.id))].map((_,i) => <Star key={i} className="w-2.5 h-2.5 fill-current" />)}
+                                          </div>
+                                      )}
+                                  </div>
                                   <p className="text-xs text-slate-400">{m.estatus}</p>
                               </div>
                               {selectedMemberId === m.id && <Check className="w-5 h-5 text-sky-500 ml-auto" />}
                           </div>
                       ))}
+                      {getFilteredMembersForProposal().length === 0 && <p className="text-center text-xs text-slate-400 mt-4">No se encontraron candidatos elegibles.</p>}
                   </div>
 
                   {/* Role Input & Action */}
                   <div className="pt-4 border-t border-slate-100">
-                      <label className="text-xs font-bold text-slate-400 uppercase ml-1 mb-2 block">Rol en el Viaje</label>
+                      <label className="text-xs font-bold text-slate-400 uppercase ml-1 mb-2 block">Rol Sugerido</label>
                       <div className="grid grid-cols-2 gap-2 mb-4">
                           {['INTERCESOR', 'MUSICO', 'EVANGELISTA', 'APOYO'].map((role) => (
                               <button
@@ -315,7 +392,7 @@ const Viajes: React.FC = () => {
                                 onClick={() => setSelectedRole(role as TripParticipant['role'])}
                                 className={`py-2 px-3 rounded-lg text-[10px] font-bold border transition-colors uppercase ${
                                     selectedRole === role 
-                                    ? 'bg-sky-50 text-white border-sky-500' 
+                                    ? 'bg-sky-50 text-sky-600 border-sky-500' 
                                     : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
                                 }`}
                               >
@@ -328,7 +405,7 @@ const Viajes: React.FC = () => {
                         disabled={!selectedMemberId}
                         className="w-full py-3 bg-sky-600 text-white rounded-2xl font-bold hover:bg-sky-700 transition-colors disabled:opacity-50 shadow-glow"
                       >
-                          Enviar Propuesta
+                          {isPastor ? 'Agregar Oficialmente' : 'Enviar Propuesta'}
                       </button>
                   </div>
               </div>

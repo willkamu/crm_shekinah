@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../App.tsx';
 import { Users, Home, X, Plus, Edit2, Trash2, ChevronRight, Activity, TrendingUp, MapPin, GraduationCap, Plane, AlertTriangle, CheckCircle, BarChart3, AlertCircle, BookOpen, Calendar, CheckSquare, ShieldCheck, Wallet } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { Anexo, TeachingHouse } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -21,6 +21,11 @@ const Dashboard: React.FC = () => {
   // Editing House State inside Modal
   const [editingHouseId, setEditingHouseId] = useState<string | null>(null);
   const [editHouseName, setEditHouseName] = useState('');
+
+  // --- SECURITY: REDIRECT MEMBERS TO PROFILE (PDF 12.6) ---
+  if (currentUser.role === 'MIEMBRO') {
+      return <Navigate to="/profile" replace />;
+  }
 
   // --- SPECIAL VIEW: MAESTRO_CASA (PDF 12.4) ---
   if (currentUser.role === 'MAESTRO_CASA') {
@@ -111,62 +116,85 @@ const Dashboard: React.FC = () => {
           <div className="space-y-8 animate-fadeIn">
               {/* Leader Header */}
               <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-[2.5rem] p-8 text-white shadow-glow">
-                  <div className="flex justify-between items-start mb-6">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                       <div>
                           <h2 className="text-3xl font-bold tracking-tight mb-1">{myAnexo?.nombre || 'Mi Anexo'}</h2>
                           <p className="text-slate-400 text-sm font-medium">Panel de Liderazgo</p>
                       </div>
-                      <div className="bg-white/10 p-2 rounded-xl backdrop-blur-md">
+                      <div className="bg-white/10 p-2 rounded-xl backdrop-blur-md self-end md:self-auto">
                           <Users className="w-6 h-6 text-white"/>
                       </div>
                   </div>
                   
-                  <div className="grid grid-cols-4 gap-4">
-                      <div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-black/20 p-3 rounded-2xl">
                           <div className="text-2xl font-extrabold">{myMembers.length}</div>
                           <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Miembros</div>
                       </div>
-                      <div>
+                      <div className="bg-black/20 p-3 rounded-2xl">
                           <div className="text-2xl font-extrabold">{myHouses.length}</div>
                           <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Casas</div>
                       </div>
-                      <div>
+                      <div className="bg-black/20 p-3 rounded-2xl">
                           <div className="text-2xl font-extrabold">{myActiveHouses}</div>
                           <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Activas</div>
                       </div>
-                      <div>
+                      <div className="bg-emerald-500/20 p-3 rounded-2xl border border-emerald-500/30">
                           <div className="text-2xl font-bold text-emerald-400">{attendanceAvg}</div>
-                          <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Asist.</div>
+                          <div className="text-[10px] text-emerald-200 uppercase font-bold tracking-wider">Asistencia</div>
                       </div>
                   </div>
               </div>
 
-              {/* 6 BIG ACTION BUTTONS (PDF 12.3) */}
-              <div className="grid grid-cols-2 gap-4">
-                  <Link to="/attendance" className="bg-white p-6 rounded-3xl shadow-card border border-slate-50 flex flex-col items-center justify-center text-center hover:scale-[1.02] transition-transform aspect-square">
-                      <div className="bg-sky-100 p-4 rounded-full mb-4 text-sky-600"><CheckSquare className="w-8 h-8"/></div>
-                      <span className="font-bold text-slate-800 text-sm uppercase">Registrar Culto</span>
+              {/* 6 KEY ACTIONS (PDF 12.3) - Optimized Layout */}
+              <h3 className="text-lg font-bold text-slate-800 px-2">Gestión Operativa</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  <Link to="/attendance" className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center hover:shadow-md hover:-translate-y-1 transition-all h-32 group">
+                      <div className="bg-sky-50 p-3 rounded-2xl mb-2 text-sky-600 group-hover:bg-sky-100 transition-colors"><CheckSquare className="w-6 h-6"/></div>
+                      <span className="font-bold text-slate-700 text-xs uppercase leading-tight">Registrar<br/>Culto</span>
                   </Link>
-                  <Link to="/casas" className="bg-white p-6 rounded-3xl shadow-card border border-slate-50 flex flex-col items-center justify-center text-center hover:scale-[1.02] transition-transform aspect-square">
-                      <div className="bg-orange-100 p-4 rounded-full mb-4 text-orange-600"><Home className="w-8 h-8"/></div>
-                      <span className="font-bold text-slate-800 text-sm uppercase">Casas Enseñ.</span>
+                  <Link to="/casas" className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center hover:shadow-md hover:-translate-y-1 transition-all h-32 group">
+                      <div className="bg-orange-50 p-3 rounded-2xl mb-2 text-orange-600 group-hover:bg-orange-100 transition-colors"><Home className="w-6 h-6"/></div>
+                      <span className="font-bold text-slate-700 text-xs uppercase leading-tight">Casas de<br/>Enseñanza</span>
                   </Link>
-                  <Link to="/courses" className="bg-white p-6 rounded-3xl shadow-card border border-slate-50 flex flex-col items-center justify-center text-center hover:scale-[1.02] transition-transform aspect-square">
-                      <div className="bg-violet-100 p-4 rounded-full mb-4 text-violet-600"><BookOpen className="w-8 h-8"/></div>
-                      <span className="font-bold text-slate-800 text-sm uppercase">Formación</span>
+                  <Link to="/courses" className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center hover:shadow-md hover:-translate-y-1 transition-all h-32 group">
+                      <div className="bg-violet-50 p-3 rounded-2xl mb-2 text-violet-600 group-hover:bg-violet-100 transition-colors"><BookOpen className="w-6 h-6"/></div>
+                      <span className="font-bold text-slate-700 text-xs uppercase leading-tight">Formación<br/>Básica</span>
                   </Link>
-                  <Link to="/ministries" className="bg-white p-6 rounded-3xl shadow-card border border-slate-50 flex flex-col items-center justify-center text-center hover:scale-[1.02] transition-transform aspect-square">
-                      <div className="bg-pink-100 p-4 rounded-full mb-4 text-pink-600"><ShieldCheck className="w-8 h-8"/></div>
-                      <span className="font-bold text-slate-800 text-sm uppercase">Ministerios</span>
+                  <Link to="/ministries" className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center hover:shadow-md hover:-translate-y-1 transition-all h-32 group">
+                      <div className="bg-pink-50 p-3 rounded-2xl mb-2 text-pink-600 group-hover:bg-pink-100 transition-colors"><ShieldCheck className="w-6 h-6"/></div>
+                      <span className="font-bold text-slate-700 text-xs uppercase leading-tight">Ministerios<br/>Locales</span>
                   </Link>
-                  <Link to="/viajes" className="bg-white p-6 rounded-3xl shadow-card border border-slate-50 flex flex-col items-center justify-center text-center hover:scale-[1.02] transition-transform aspect-square">
-                      <div className="bg-indigo-100 p-4 rounded-full mb-4 text-indigo-600"><Plane className="w-8 h-8"/></div>
-                      <span className="font-bold text-slate-800 text-sm uppercase">Viajes Prop.</span>
+                  <Link to="/viajes" className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center hover:shadow-md hover:-translate-y-1 transition-all h-32 group">
+                      <div className="bg-indigo-50 p-3 rounded-2xl mb-2 text-indigo-600 group-hover:bg-indigo-100 transition-colors"><Plane className="w-6 h-6"/></div>
+                      <span className="font-bold text-slate-700 text-xs uppercase leading-tight">Viajes<br/>Propuestos</span>
                   </Link>
-                  <Link to="/finances" className="bg-white p-6 rounded-3xl shadow-card border border-slate-50 flex flex-col items-center justify-center text-center hover:scale-[1.02] transition-transform aspect-square">
-                      <div className="bg-emerald-100 p-4 rounded-full mb-4 text-emerald-600"><Wallet className="w-8 h-8"/></div>
-                      <span className="font-bold text-slate-800 text-sm uppercase">Finanzas Mes</span>
+                  <Link to="/finances" className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center hover:shadow-md hover:-translate-y-1 transition-all h-32 group">
+                      <div className="bg-emerald-50 p-3 rounded-2xl mb-2 text-emerald-600 group-hover:bg-emerald-100 transition-colors"><Wallet className="w-6 h-6"/></div>
+                      <span className="font-bold text-slate-700 text-xs uppercase leading-tight">Finanzas<br/>Mensuales</span>
                   </Link>
+              </div>
+
+              {/* Members Preview */}
+              <div className="bg-white rounded-[2.5rem] p-6 shadow-card border border-slate-50">
+                  <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-bold text-slate-800">Miembros Recientes</h3>
+                      <Link to="/members" className="text-xs font-bold text-brand-blue hover:underline">Ver Directorio</Link>
+                  </div>
+                  <div className="space-y-3">
+                      {myMembers.slice(0, 3).map(m => (
+                          <div key={m.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                              <img src={m.photoUrl} className="w-10 h-10 rounded-full bg-white" />
+                              <div className="flex-1">
+                                  <p className="font-bold text-slate-700 text-sm">{m.nombres}</p>
+                                  <div className="flex gap-2">
+                                      <span className="text-[10px] text-slate-400 uppercase font-bold">{m.estatus}</span>
+                                  </div>
+                              </div>
+                              <div className={`w-2.5 h-2.5 rounded-full ${m.attendance_level === 'VERDE' ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                          </div>
+                      ))}
+                  </div>
               </div>
           </div>
       );

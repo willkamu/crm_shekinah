@@ -64,7 +64,11 @@ const App: React.FC = () => {
   const [intercesionLogs, setIntercesionLogs] = useState<IntercesionLog[]>(() => loadState('int_logs', MOCK_INTERCESION_LOGS));
   const [finances, setFinances] = useState<FinanceTransaction[]>(() => loadState('finances', MOCK_FINANCES));
   const [monthlyReports, setMonthlyReports] = useState<MonthlyReport[]>(() => loadState('reports', MOCK_MONTHLY_REPORTS));
-  const [courses, setCourses] = useState<Course[]>(() => loadState('courses', MOCK_COURSES));
+  const [courses, setCourses] = useState<Course[]>(() => {
+      const storedCourses = loadState('courses', MOCK_COURSES);
+      // Ensure requests array exists for old data
+      return storedCourses.map((c: Course) => ({...c, requests: c.requests || []}));
+  });
   const [epmiEnrollments, setEpmiEnrollments] = useState<EpmiEnrollment[]>(() => loadState('epmi', MOCK_EPMI_ENROLLMENTS));
   const [trips, setTrips] = useState<MissionTrip[]>(() => loadState('trips', MOCK_TRIPS));
   const [history, setHistory] = useState<HistoryRecord[]>(() => loadState('history', MOCK_HISTORY));
@@ -102,10 +106,8 @@ const App: React.FC = () => {
           sixtyDaysAgo.setDate(now.getDate() - 60);
 
           // 1. Attendance Level (Real Temporal Logic: Last 8 events within active range)
-          // Sort events by date DESC
           const sortedEvents = [...events].sort((a,b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
           
-          // Get last 8 relevant events (Service or Class)
           const recentEvents = sortedEvents.filter(e => 
               (e.tipo === 'Culto' || e.tipo === 'Clase/Curso') && 
               (e.anexoId === member.anexoId || e.anexoId === 'ALL')
@@ -116,7 +118,6 @@ const App: React.FC = () => {
              attendedCount = recentEvents.filter(e => attendance[`${e.id}-${memberId}`]).length;
           }
           
-          // Calculate % only if there are events
           const attendancePct = recentEvents.length > 0 ? (attendedCount / recentEvents.length) * 100 : 100;
           
           let newAttendanceLevel: IndicatorLevel = 'VERDE';
@@ -125,32 +126,35 @@ const App: React.FC = () => {
           else if (attendancePct < 75) newAttendanceLevel = 'AMARILLO';
 
           // 2. Fidelity Level (Real Temporal Logic: Transaction in last 60 days)
-          // Filter transactions for this member that are recent
           const recentTransactions = finances.filter(f => {
               const txDate = new Date(f.fecha);
               return f.miembroId === memberId && txDate >= sixtyDaysAgo;
           });
           
           let newFidelityLevel: IndicatorLevel = 'ROJO';
-          if (recentTransactions.length >= 2) newFidelityLevel = 'VERDE'; // 1 per month avg
+          if (recentTransactions.length >= 2) newFidelityLevel = 'VERDE';
           else if (recentTransactions.length === 1) newFidelityLevel = 'AMARILLO';
-          // If no transactions in 60 days -> RED
           
-          // 3. Service Level (Role & Activity based)
+          // 3. Service Level (Includes Intercession Fasting & Trips)
           const inMinistry = member.ministryIds.length > 0;
-          // Count only attended trips
           const onTrip = trips.some(t => t.participants.some(p => p.memberId === memberId && p.status === 'APROBADO' && p.attended));
           const inEpmi = epmiEnrollments.some(e => e.memberId === memberId && e.status === 'ACTIVO');
-          const isIntercessor = !!member.intercesionGroupId;
+          
+          // CHECK INTERCESSION LOGS (Fasting/Wednesdays)
+          const intercessionCount = intercesionLogs.filter(l => {
+              const logDate = new Date(l.fecha);
+              return l.memberId === memberId && logDate >= sixtyDaysAgo;
+          }).length;
+          
+          const isFaithfulFaster = intercessionCount >= 4; // Approx 2 fasts/wednesdays per month min
           
           let newServiceLevel: IndicatorLevel = 'ROJO';
-          if (inEpmi || onTrip) newServiceLevel = 'VERDE'; // Highly active
-          else if (inMinistry && isIntercessor) newServiceLevel = 'VERDE';
-          else if (inMinistry) newServiceLevel = 'AMARILLO';
-          else if (isIntercessor) newServiceLevel = 'AMARILLO';
-          else newServiceLevel = 'NARANJA'; // Regular member, no service
+          if (inEpmi || onTrip || isFaithfulFaster) newServiceLevel = 'VERDE'; // Highly active in disciplines
+          else if (inMinistry) newServiceLevel = 'AMARILLO'; // Active but maybe not fasting
+          else if (intercessionCount > 0) newServiceLevel = 'AMARILLO'; // Trying
+          else newServiceLevel = 'NARANJA';
 
-          // Only update if changed to avoid render loops
+          // Only update if changed
           if (member.attendance_level === newAttendanceLevel && 
               member.fidelity_level === newFidelityLevel &&
               member.service_level === newServiceLevel) {
@@ -164,7 +168,7 @@ const App: React.FC = () => {
               service_level: newServiceLevel
           };
       }));
-  }, [events, attendance, finances, trips, epmiEnrollments]);
+  }, [events, attendance, finances, trips, epmiEnrollments, intercesionLogs]);
 
   // --- CRON JOB SIMULATION (PDF 9.12) ---
   const runNightlyProcess = () => {
@@ -191,10 +195,7 @@ const App: React.FC = () => {
 
       // 2. Check Risk Members
       members.forEach(member => {
-          // Force recalculation for everyone
           recalculateSpiritualIndicators(member.id);
-          
-          // Generate Alert if Stable member drops to Red
           if (member.estatus === 'Estable' && member.attendance_level === 'ROJO') {
               const notif: Notification = {
                   id: `SYS-RISK-${Date.now()}-${member.id}`,
@@ -216,10 +217,8 @@ const App: React.FC = () => {
 
   const resetSystem = () => {
       if(window.confirm("ADVERTENCIA: ¿Estás seguro de borrar TODOS los datos y volver al estado inicial?")) {
-        // Clear Local Storage
         localStorage.clear();
         
-        // Reset State to Mocks
         setMembers(MOCK_MEMBERS);
         setAnexos(MOCK_ANEXOS);
         setFinances(MOCK_FINANCES);
@@ -243,7 +242,6 @@ const App: React.FC = () => {
       }
   };
 
-  // --- AUDIT SYSTEM (PDF 14.7) ---
   const logAudit = (action: string, target: string, details: string) => {
       const newLog: AuditRecord = {
           id: `AUD-${Date.now()}`,
@@ -256,7 +254,6 @@ const App: React.FC = () => {
       setAuditLogs(prev => [newLog, ...prev]);
   };
 
-  // --- AUTH ACTIONS ---
   const login = (role: UserRole) => {
       let user = { role: role, anexoId: 'ALL', name: 'Pastor Principal', memberId: undefined };
       
@@ -278,7 +275,6 @@ const App: React.FC = () => {
       logAudit('LOGOUT', currentUser.name, 'Cierre de sesión');
   };
 
-  // --- ACTIONS ---
   const notify = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
@@ -335,7 +331,6 @@ const App: React.FC = () => {
   };
 
   const addMember = (member: Member) => {
-    // Add joinedAt date automatically
     const memberWithDate = {
         ...member,
         joinedAt: new Date().toISOString()
@@ -348,7 +343,6 @@ const App: React.FC = () => {
   const updateMember = (id: string, data: Partial<Member>) => {
     setMembers(prev => prev.map(m => {
         if (m.id === id) {
-            // CENTRALIZED LOGIC: Auto-calculate completed_basicos if courses change (PDF 11.7)
             if (data.coursesCompletedIds) {
                 const basics = courses.filter(c => c.type === 'BASICO');
                 const doneCount = data.coursesCompletedIds.filter(id => basics.find(b => b.id === id)).length;
@@ -398,6 +392,21 @@ const App: React.FC = () => {
       notify(groupId ? 'Miembro agregado al grupo' : 'Miembro removido del grupo');
   };
 
+  const addIntercesionGroup = (group: IntercesionGroup) => {
+      setIntercesionGroups(prev => [...prev, group]);
+      notify('Grupo de intercesión creado');
+  };
+
+  const updateIntercesionGroup = (id: string, data: Partial<IntercesionGroup>) => {
+      setIntercesionGroups(prev => prev.map(g => g.id === id ? { ...g, ...data } : g));
+      notify('Grupo de intercesión actualizado');
+  };
+
+  const deleteIntercesionGroup = (id: string) => {
+      setIntercesionGroups(prev => prev.filter(g => g.id !== id));
+      notify('Grupo eliminado', 'error');
+  };
+
   const addEvent = (event: Event) => {
     setEvents(prev => [...prev, event]);
     logAudit('CREATE_EVENT', event.nombre, `Fecha: ${event.fecha}`);
@@ -412,7 +421,6 @@ const App: React.FC = () => {
   const toggleAttendance = (eventId: string, memberId: string) => {
     const key = `${eventId}-${memberId}`;
     setAttendance(prev => ({ ...prev, [key]: !prev[key] }));
-    // Use timeout to allow state to settle before recalc
     setTimeout(() => recalculateSpiritualIndicators(memberId), 100);
   };
 
@@ -493,7 +501,7 @@ const App: React.FC = () => {
   };
 
   const addCourse = (c: Course) => {
-    setCourses(prev => [...prev, c]);
+    setCourses(prev => [...prev, { ...c, requests: [] }]);
     notify('Curso creado');
   };
 
@@ -509,7 +517,6 @@ const App: React.FC = () => {
     notify('Curso eliminado', 'error');
   };
 
-  // --- LMS FEATURES ---
   const enrollStudentInCourse = (courseId: string, memberId: string) => {
       setCourses(prev => prev.map(c => {
           if(c.id !== courseId) return c;
@@ -534,6 +541,32 @@ const App: React.FC = () => {
           return { ...c, materials: [...(c.materials || []), material] };
       }));
       notify("Material subido exitosamente");
+  };
+
+  const requestCourseEnrollment = (courseId: string, memberId: string) => {
+      setCourses(prev => prev.map(c => {
+          if (c.id !== courseId) return c;
+          const currentRequests = c.requests || [];
+          if (currentRequests.includes(memberId) || (c.enrolledStudentIds || []).includes(memberId)) return c;
+          return { ...c, requests: [...currentRequests, memberId] };
+      }));
+      notify("Solicitud de vacante enviada");
+  };
+
+  const approveCourseEnrollment = (courseId: string, memberId: string, approved: boolean) => {
+      setCourses(prev => prev.map(c => {
+          if (c.id !== courseId) return c;
+          
+          const newRequests = (c.requests || []).filter(id => id !== memberId);
+          let newEnrolled = c.enrolledStudentIds || [];
+          
+          if (approved) {
+              newEnrolled = [...newEnrolled, memberId];
+          }
+
+          return { ...c, requests: newRequests, enrolledStudentIds: newEnrolled };
+      }));
+      notify(approved ? "Alumno aprobado e inscrito" : "Solicitud rechazada");
   };
 
   const enrollEpmiStudent = (memberId: string) => {
@@ -589,7 +622,6 @@ const App: React.FC = () => {
           }
           return t;
       }));
-      // Recalc service level for the member
       setTimeout(() => recalculateSpiritualIndicators(memberId), 100);
       notify('Asistencia de viaje registrada');
   };
@@ -618,11 +650,11 @@ const App: React.FC = () => {
     attendance, toggleAttendance, markAllPresent,
     eventRegistrations, toggleEventRegistration,
     ministries, addMinistry, updateMinistry, deleteMinistry, 
-    intercesionGroups, intercesionLogs, logIntercesionAttendance, assignIntercesionGroup,
+    intercesionGroups, intercesionLogs, logIntercesionAttendance, assignIntercesionGroup, addIntercesionGroup, updateIntercesionGroup, deleteIntercesionGroup,
     finances, addTransaction,
     monthlyReports, addMonthlyReport, updateMonthlyReport,
     courses, addCourse, updateCourse, deleteCourse,
-    enrollStudentInCourse, unenrollStudentFromCourse, addCourseMaterial,
+    enrollStudentInCourse, unenrollStudentFromCourse, addCourseMaterial, requestCourseEnrollment, approveCourseEnrollment,
     epmiEnrollments, enrollEpmiStudent, updateEpmiStudent,
     trips, addTrip, updateTrip, markTripAttendance,
     history, addHistoryNote,

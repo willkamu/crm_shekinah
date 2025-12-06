@@ -1,25 +1,32 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../App.tsx';
-import { Member, IntercesionLog } from '../types';
-import { Flame, Star, Calendar, Users, Award, ChevronRight, AlertCircle, Trophy, UserPlus, Check, X, Search, Trash2, Download, PieChart, CheckCircle2 } from 'lucide-react';
+import { Member, IntercesionLog, IntercesionGroup } from '../types';
+import { Flame, Star, Calendar, Users, ChevronRight, AlertCircle, Trophy, UserPlus, Check, X, Search, Trash2, Download, PieChart, Plus, Edit2, Plane } from 'lucide-react';
 
 const Intercesion: React.FC = () => {
-  const { intercesionGroups, members, intercesionLogs, logIntercesionAttendance, assignIntercesionGroup, currentUser, notify } = useApp();
+  const { intercesionGroups, members, intercesionLogs, logIntercesionAttendance, assignIntercesionGroup, addIntercesionGroup, updateIntercesionGroup, deleteIntercesionGroup, currentUser, notify } = useApp();
   const [activeTab, setActiveTab] = useState<'GRUPOS' | 'MIERCOLES' | 'AYUNO' | 'RANKING'>('GRUPOS');
   const [selectedGroupId, setSelectedGroupId] = useState<string>(intercesionGroups[0]?.id || '');
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Modal State
+  // Modal State for Members
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [groupToAssignId, setGroupToAssignId] = useState<string | null>(null);
   const [searchMemberTerm, setSearchMemberTerm] = useState('');
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
+  // Modal State for Groups (CRUD)
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const [isEditGroupMode, setIsEditGroupMode] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<IntercesionGroup | null>(null);
+  const [groupName, setGroupName] = useState('');
+  const [groupLeaderId, setGroupLeaderId] = useState('');
+
   // Helpers
   const getGroupMembers = (groupId: string) => members.filter(m => m.intercesionGroupId === groupId);
   
-  // Calculate Ranking (Stars) based on log count (Simplified for Demo)
+  // Calculate Ranking (Stars) based on log count
   const getStars = (memberId: string) => {
       const logCount = intercesionLogs.filter(l => l.memberId === memberId).length;
       if (logCount > 10) return 5;
@@ -29,6 +36,7 @@ const Intercesion: React.FC = () => {
       return 1;
   };
 
+  // --- MEMBER HANDLERS ---
   const handleAddMember = () => {
       if (selectedMemberId && groupToAssignId) {
           assignIntercesionGroup(selectedMemberId, groupToAssignId);
@@ -51,12 +59,13 @@ const Intercesion: React.FC = () => {
           return;
       }
 
-      const headers = ['Nombre', 'Grupo', 'Estrellas', 'Estado'];
+      const headers = ['Nombre', 'Grupo', 'Estrellas', 'Estado', 'Apto Viaje'];
       const rows = intercesors.map(m => {
           const stars = getStars(m.id);
           const group = intercesionGroups.find(g => g.id === m.intercesionGroupId)?.nombre || 'Sin Grupo';
           const status = stars >= 4 ? 'Fiel' : stars >= 2 ? 'Regular' : 'Riesgo';
-          return [m.nombres, group, stars, status];
+          const apto = stars >= 3 ? 'SI' : 'NO';
+          return [m.nombres, group, stars, status, apto];
       });
 
       const csvContent = "data:text/csv;charset=utf-8," 
@@ -73,9 +82,57 @@ const Intercesion: React.FC = () => {
       notify("Ranking exportado a CSV", "success");
   };
 
+  // --- GROUP HANDLERS ---
+  const handleOpenCreateGroup = () => {
+      setIsEditGroupMode(false);
+      setEditingGroup(null);
+      setGroupName('');
+      setGroupLeaderId('');
+      setIsGroupModalOpen(true);
+  };
+
+  const handleOpenEditGroup = (group: IntercesionGroup) => {
+      setIsEditGroupMode(true);
+      setEditingGroup(group);
+      setGroupName(group.nombre);
+      setGroupLeaderId(group.liderId);
+      setIsGroupModalOpen(true);
+  };
+
+  const handleSaveGroup = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!groupName) return;
+
+      if (isEditGroupMode && editingGroup) {
+          updateIntercesionGroup(editingGroup.id, {
+              nombre: groupName,
+              liderId: groupLeaderId
+          });
+          notify("Grupo actualizado correctamente");
+      } else {
+          addIntercesionGroup({
+              id: `GRP-${Date.now()}`,
+              nombre: groupName,
+              liderId: groupLeaderId
+          });
+          notify("Nuevo grupo creado");
+      }
+      setIsGroupModalOpen(false);
+  };
+
+  const handleDeleteGroup = (groupId: string) => {
+      if (window.confirm("¿Eliminar este grupo? Los miembros quedarán sin asignación.")) {
+          deleteIntercesionGroup(groupId);
+          // Also cleanup members
+          members.filter(m => m.intercesionGroupId === groupId).forEach(m => {
+              assignIntercesionGroup(m.id, null);
+          });
+      }
+  };
+
   const filteredMembers = members.filter(m => 
       m.nombres.toLowerCase().includes(searchMemberTerm.toLowerCase()) &&
-      !m.intercesionGroupId // Show only members not already in a group
+      !m.intercesionGroupId 
   );
 
   // Statistics Helper
@@ -133,53 +190,90 @@ const Intercesion: React.FC = () => {
 
       {/* TAB: GRUPOS */}
       {activeTab === 'GRUPOS' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {intercesionGroups.map(group => {
-                  const groupMembers = getGroupMembers(group.id);
-                  return (
-                      <div key={group.id} className="bg-white rounded-[2rem] border border-slate-100 shadow-card hover:shadow-lg transition-all overflow-hidden flex flex-col h-full">
-                          <div className="p-6 pb-4">
-                              <div className="flex justify-between items-start mb-4">
-                                  <div className="p-3 bg-red-50 text-red-500 rounded-xl">
-                                      <Users className="w-6 h-6" />
-                                  </div>
-                                  <span className="text-2xl font-bold text-slate-800">{groupMembers.length}</span>
-                              </div>
-                              <h3 className="text-lg font-bold text-slate-800">{group.nombre}</h3>
-                              <p className="text-xs text-slate-400 mb-4">Líder asignado: {members.find(m => m.id === group.liderId)?.nombres || 'Sin asignar'}</p>
-                          </div>
-                          
-                          <div className="flex-1 bg-slate-50 p-4">
-                              <div className="flex justify-between items-center mb-3">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Miembros</p>
+          <div className="space-y-6">
+              <div className="flex justify-end">
+                  <button 
+                    onClick={handleOpenCreateGroup}
+                    className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-glow hover:bg-red-700 transition-colors flex items-center gap-2"
+                  >
+                      <Plus className="w-4 h-4" /> Nuevo Grupo
+                  </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {intercesionGroups.map(group => {
+                      const groupMembers = getGroupMembers(group.id);
+                      const leader = members.find(m => m.id === group.liderId);
+                      
+                      return (
+                          <div key={group.id} className="bg-white rounded-[2rem] border border-slate-100 shadow-card hover:shadow-lg transition-all overflow-hidden flex flex-col h-full relative">
+                              {/* ACTIONS ALWAYS VISIBLE */}
+                              <div className="absolute top-4 right-4 flex gap-1 z-10">
                                   <button 
-                                    onClick={() => { setGroupToAssignId(group.id); setIsAssignOpen(true); }}
-                                    className="p-1.5 bg-white rounded-lg text-red-500 shadow-sm hover:text-red-700 transition-colors"
+                                    onClick={() => handleOpenEditGroup(group)} 
+                                    className="p-2 bg-slate-50 rounded-full text-slate-500 hover:text-brand-blue hover:bg-white shadow-sm border border-slate-100 transition-all"
+                                    title="Editar Grupo"
                                   >
-                                      <UserPlus className="w-4 h-4" />
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteGroup(group.id)} 
+                                    className="p-2 bg-slate-50 rounded-full text-slate-500 hover:text-red-500 hover:bg-white shadow-sm border border-slate-100 transition-all"
+                                    title="Eliminar Grupo"
+                                  >
+                                      <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                               </div>
-                              <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
-                                  {groupMembers.map(m => (
-                                      <div key={m.id} className="flex items-center justify-between group/member">
-                                          <div className="flex items-center gap-2">
-                                              <img src={m.photoUrl} className="w-7 h-7 rounded-full border border-white bg-slate-200" title={m.nombres} />
-                                              <span className="text-xs font-bold text-slate-600 truncate max-w-[120px]">{m.nombres}</span>
-                                          </div>
-                                          <button 
-                                            onClick={() => handleRemoveMember(m.id)}
-                                            className="opacity-0 group-hover/member:opacity-100 text-slate-400 hover:text-red-500 transition-opacity"
-                                          >
-                                              <X className="w-3 h-3" />
-                                          </button>
+
+                              <div className="p-6 pb-4 bg-slate-50/30">
+                                  <div className="flex justify-between items-start mb-4">
+                                      <div className="p-3 bg-red-50 text-red-500 rounded-xl">
+                                          <Users className="w-6 h-6" />
                                       </div>
-                                  ))}
-                                  {groupMembers.length === 0 && <p className="text-xs text-slate-300 italic text-center py-2">Grupo vacío</p>}
+                                      <span className="text-2xl font-bold text-slate-800 pr-16">{groupMembers.length}</span>
+                                  </div>
+                                  <h3 className="text-lg font-bold text-slate-800 truncate pr-4">{group.nombre}</h3>
+                                  
+                                  <div className="mt-2 flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
+                                      <img src={leader?.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${group.id}`} className="w-6 h-6 rounded-full bg-slate-100"/>
+                                      <div>
+                                          <p className="text-[10px] text-slate-400 font-bold uppercase">Líder de Grupo</p>
+                                          <p className="text-xs font-bold text-slate-700">{leader?.nombres || 'Sin asignar'}</p>
+                                      </div>
+                                  </div>
+                              </div>
+                              
+                              <div className="flex-1 bg-white p-4">
+                                  <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar mb-4">
+                                      {groupMembers.map(m => (
+                                          <div key={m.id} className="flex items-center justify-between group/member p-1.5 rounded-lg hover:bg-slate-50 transition-colors">
+                                              <div className="flex items-center gap-2">
+                                                  <img src={m.photoUrl} className="w-7 h-7 rounded-full border border-white bg-slate-200" title={m.nombres} />
+                                                  <span className="text-xs font-bold text-slate-600 truncate max-w-[120px]">{m.nombres}</span>
+                                              </div>
+                                              <button 
+                                                onClick={() => handleRemoveMember(m.id)}
+                                                className="text-slate-300 hover:text-red-500 transition-colors p-1"
+                                                title="Quitar del grupo"
+                                              >
+                                                  <X className="w-3 h-3" />
+                                              </button>
+                                          </div>
+                                      ))}
+                                      {groupMembers.length === 0 && <p className="text-xs text-slate-300 italic text-center py-2">Grupo vacío</p>}
+                                  </div>
+
+                                  <button 
+                                    onClick={() => { setGroupToAssignId(group.id); setIsAssignOpen(true); }}
+                                    className="w-full py-2 bg-red-50 text-red-600 text-xs font-bold rounded-xl hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
+                                  >
+                                      <UserPlus className="w-3.5 h-3.5" /> Agregar Intercesor
+                                  </button>
                               </div>
                           </div>
-                      </div>
-                  )
-              })}
+                      )
+                  })}
+              </div>
           </div>
       )}
 
@@ -323,6 +417,7 @@ const Intercesion: React.FC = () => {
                               <th className="p-5">Intercesor</th>
                               <th className="p-5">Grupo</th>
                               <th className="p-5 text-center">Nivel (Estrellas)</th>
+                              <th className="p-5 text-center">Apto Viaje</th>
                               <th className="p-5 text-right">Estado</th>
                           </tr>
                       </thead>
@@ -330,6 +425,8 @@ const Intercesion: React.FC = () => {
                           {members.filter(m => m.intercesionGroupId).map(member => {
                               const stars = getStars(member.id);
                               const groupName = intercesionGroups.find(g => g.id === member.intercesionGroupId)?.nombre;
+                              const isEligible = stars >= 3;
+
                               return (
                                   <tr key={member.id} className="hover:bg-slate-50/50">
                                       <td className="p-5">
@@ -345,6 +442,15 @@ const Intercesion: React.FC = () => {
                                                   <Star key={i} className={`w-4 h-4 ${i < stars ? 'fill-current' : 'text-slate-200'}`} />
                                               ))}
                                           </div>
+                                      </td>
+                                      <td className="p-5 text-center">
+                                          {isEligible ? (
+                                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-sky-100 text-sky-600 rounded text-xs font-bold">
+                                                  <Plane className="w-3 h-3" /> SI
+                                              </span>
+                                          ) : (
+                                              <span className="text-slate-300 text-xs font-bold">-</span>
+                                          )}
                                       </td>
                                       <td className="p-5 text-right">
                                           <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${stars >= 4 ? 'bg-emerald-100 text-emerald-600' : stars >= 2 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'}`}>
@@ -444,6 +550,44 @@ const Intercesion: React.FC = () => {
                           <UserPlus className="w-4 h-4" /> Asignar al Grupo
                       </button>
                   </div>
+              </div>
+          </div>
+      )}
+
+      {/* CREATE/EDIT GROUP MODAL */}
+      {isGroupModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
+              <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50">
+                  <button onClick={() => setIsGroupModalOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-5 h-5"/></button>
+                  <h3 className="text-xl font-bold text-slate-800 mb-6">{isEditGroupMode ? 'Editar Grupo' : 'Nuevo Grupo'}</h3>
+                  <form onSubmit={handleSaveGroup} className="space-y-4">
+                      <div>
+                          <label className="text-xs font-bold text-slate-400 uppercase ml-1 block mb-1">Nombre</label>
+                          <input 
+                            placeholder="Ej. Grupo 6 - Victoria"
+                            value={groupName}
+                            onChange={e => setGroupName(e.target.value)}
+                            className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-red-200" 
+                            autoFocus
+                          />
+                      </div>
+                      <div>
+                          <label className="text-xs font-bold text-slate-400 uppercase ml-1 block mb-1">Líder Asignado</label>
+                          <select 
+                            value={groupLeaderId}
+                            onChange={e => setGroupLeaderId(e.target.value)}
+                            className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 font-medium text-slate-700 outline-none focus:ring-2 focus:ring-red-200"
+                          >
+                              <option value="">-- Seleccionar --</option>
+                              {members.map(m => (
+                                  <option key={m.id} value={m.id}>{m.nombres}</option>
+                              ))}
+                          </select>
+                      </div>
+                      <button type="submit" className="w-full py-4 bg-red-600 text-white rounded-2xl font-bold shadow-glow mt-2 hover:bg-red-700 transition-colors">
+                          {isEditGroupMode ? 'Guardar Cambios' : 'Crear Grupo'}
+                      </button>
+                  </form>
               </div>
           </div>
       )}

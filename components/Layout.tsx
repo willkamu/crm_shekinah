@@ -30,21 +30,35 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Menú PDF Parte 12.1 + EPMI based on Roles
+  // Menú PDF Parte 12.1 + EPMI based on Roles (STRICT FILTERING)
   const navItems = [
+    // MEMBER SPECIFIC
     { label: 'Mi Perfil', icon: UserCircle, path: '/profile', role: ['MIEMBRO'] }, 
+    
+    // ADMIN / LEADER SPECIFIC
     { label: 'Panel', icon: LayoutDashboard, path: '/', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MAESTRO_CASA', 'SECRETARIA_CASA', 'SECRETARIA_ANEXO'] },
-    { label: 'Mi Anexo', icon: MapPin, path: '/sedes', role: ['LIDER_ANEXO', 'PASTOR_PRINCIPAL', 'SECRETARIA_ANEXO'] },
+    // Removed redundant 'Mi Anexo' for leaders, they use Panel
+    
     { label: 'Sedes', icon: MapPin, path: '/sedes', role: ['PASTOR_PRINCIPAL', 'MINISTRO'] },
+    
+    // Leaders can see members of their scope
     { label: 'Miembros', icon: Users, path: '/members', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MAESTRO_CASA', 'SECRETARIA_CASA', 'SECRETARIA_ANEXO'] },
+    
     { label: 'Casas', icon: HomeIcon, path: '/casas', role: ['LIDER_ANEXO', 'MAESTRO_CASA', 'PASTOR_PRINCIPAL'] }, 
     { label: 'Ministerios', icon: ShieldCheck, path: '/ministries', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO'] },
     { label: 'Intercesión', icon: HeartHandshake, path: '/intercesion', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO'] }, 
+    
+    // Everyone sees Courses
     { label: 'Formación', icon: BookOpen, path: '/courses', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MAESTRO_CASA', 'MIEMBRO'] },
+    
     { label: 'EPMI', icon: GraduationCap, path: '/epmi', role: ['PASTOR_PRINCIPAL', 'MINISTRO'] }, 
     { label: 'Viajes', icon: Plane, path: '/viajes', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MIEMBRO'] },
     { label: 'Finanzas', icon: Wallet, path: '/finances', role: ['PASTOR_PRINCIPAL', 'LIDER_ANEXO', 'SECRETARIA_ANEXO'] },
-    { label: 'Eventos', icon: CalendarDays, path: '/plan' }, 
+    
+    // Everyone sees Events
+    { label: 'Eventos', icon: CalendarDays, path: '/plan', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MAESTRO_CASA', 'MIEMBRO', 'SECRETARIA_CASA', 'SECRETARIA_ANEXO'] }, 
+    
+    { label: 'Recursos', icon: BookOpen, path: '/resources', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MAESTRO_CASA', 'MIEMBRO'] },
   ];
 
   function HomeIcon(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>}
@@ -237,19 +251,23 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
         </main>
 
-        <nav className="lg:hidden fixed bottom-6 left-6 right-6 bg-white/95 backdrop-blur-2xl border border-white/40 shadow-2xl shadow-slate-200/50 rounded-3xl flex justify-around py-3 px-2 z-50">
-          {filteredNavItems.slice(0, 5).map((item) => (
+        {/* MOBILE NAVIGATION BAR FIXED (SCROLLABLE & NO CUT-OFF) */}
+        <nav className="lg:hidden fixed bottom-4 left-4 right-4 bg-white/95 backdrop-blur-2xl border border-white/40 shadow-2xl shadow-slate-200/50 rounded-3xl flex overflow-x-auto no-scrollbar py-2 px-2 z-50 gap-1 items-center">
+          {filteredNavItems.map((item) => (
             <Link 
               key={item.path} 
               to={item.path}
-              className={`relative flex flex-col items-center justify-center w-full transition-all duration-300 group`}
+              className={`relative flex flex-col items-center justify-center min-w-[75px] flex-shrink-0 transition-all duration-300 group`}
             >
               <div className={`
-                p-2.5 rounded-2xl mb-1 transition-all duration-300
-                ${location.pathname === item.path ? 'bg-brand-soft text-brand-blue scale-110 shadow-soft' : 'text-slate-300 group-hover:bg-slate-50 group-hover:text-slate-500'}
+                p-1.5 rounded-2xl mb-0.5 transition-all duration-300
+                ${location.pathname === item.path ? 'bg-brand-soft text-brand-blue shadow-soft scale-110' : 'text-slate-300 group-hover:bg-slate-50 group-hover:text-slate-500'}
               `}>
                  <item.icon className="w-6 h-6" strokeWidth={2.5} />
               </div>
+              <span className={`text-[9px] font-bold leading-none ${location.pathname === item.path ? 'text-brand-blue' : 'text-slate-300'}`}>
+                  {item.label}
+              </span>
             </Link>
           ))}
         </nav>

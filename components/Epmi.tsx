@@ -37,16 +37,10 @@ const Epmi: React.FC = () => {
 
   // --- LOGIC: SUGERIR CANDIDATO (PDF 9.5) ---
   const potentialCandidates = members.filter(m => {
-      // 1. Basic Courses Complete
       const hasBasics = m.completed_basicos;
-      // 2. Not already enrolled active
       const isEnrolled = epmiEnrollments.some(e => e.memberId === m.id && e.status === 'ACTIVO');
-      // 3. Must be flagged as candidate (either auto or manual)
       const isCandidate = m.candidate_epmi;
-      // 4. Fallback for auto-suggestion display: Good attendance
       const goodAttendance = m.attendance_level === 'VERDE' || m.attendance_level === 'AMARILLO';
-      
-      // Show if marked as candidate OR if meets auto-criteria and not enrolled
       return !isEnrolled && (isCandidate || (hasBasics && goodAttendance));
   });
 
@@ -56,8 +50,6 @@ const Epmi: React.FC = () => {
   const ciclo2Students = activeStudents.filter(e => e.cycle === 'CICLO_II');
   const serviceStudents = activeStudents.filter(e => e.cycle === 'SERVICIO');
   const graduatedStudents = epmiEnrollments.filter(e => e.cycle === 'GRADUADO');
-
-  const getCourseName = (id: string) => courses.find(c => c.id === id)?.nombre || id;
 
   const handleOpenGrading = (student: EpmiEnrollment) => {
       setSelectedStudent(student);
@@ -85,13 +77,11 @@ const Epmi: React.FC = () => {
 
   const handlePromoteClick = (student: EpmiEnrollment) => {
       if (student.cycle === 'CICLO_II') {
-          // If promoting from Cycle II, need to assign Service details
           setSelectedStudent(student);
           setServiceLocation('');
           setServiceSupervisorId('');
           setIsServiceAssignOpen(true);
       } else {
-          // Normal promotion
           setPromoteStudent(student);
       }
   };
@@ -156,7 +146,6 @@ const Epmi: React.FC = () => {
       }
   };
 
-  // Filter courses based on student cycle
   const getAvailableCoursesForGrading = () => {
       if (!selectedStudent) return [];
       const type = selectedStudent.cycle === 'CICLO_I' ? 'EPMI_I' : 'EPMI_II';
@@ -164,7 +153,6 @@ const Epmi: React.FC = () => {
   };
 
   const renderStudentList = (students: EpmiEnrollment[], cycleType: 'EPMI_I' | 'EPMI_II') => {
-      // Get courses for this cycle to create dynamic columns
       const cycleCourses = courses.filter(c => c.type === cycleType).sort((a,b) => a.orden - b.orden);
 
       return (
@@ -202,7 +190,7 @@ const Epmi: React.FC = () => {
                 )}
             </div>
 
-            {/* Desktop Table (Gradebook View) */}
+            {/* Desktop Table (Gradebook View) - ALWAYS SHOW HEADERS */}
             <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                     <thead className="bg-white text-slate-500 text-xs font-bold uppercase tracking-wider text-left border-b border-slate-100">
@@ -225,7 +213,6 @@ const Epmi: React.FC = () => {
                                     <div className="flex flex-col items-center gap-2">
                                         <Users className="w-8 h-8 opacity-20" />
                                         <span>No hay estudiantes inscritos en este ciclo.</span>
-                                        <button onClick={() => setActiveTab('CANDIDATOS')} className="text-brand-blue font-bold hover:underline">Ir a Candidatos</button>
                                     </div>
                                 </td>
                             </tr>
@@ -645,7 +632,7 @@ const Epmi: React.FC = () => {
                             onChange={e => setServiceSupervisorId(e.target.value)}
                           >
                               <option value="">-- Seleccionar --</option>
-                              {members.filter(m => ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO'].includes('PASTOR_PRINCIPAL') || true).map(m => ( // Simplified filter
+                              {members.filter(m => ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO'].includes('PASTOR_PRINCIPAL') || true).map(m => (
                                   <option key={m.id} value={m.id}>{m.nombres}</option>
                               ))}
                           </select>
@@ -692,7 +679,7 @@ const Epmi: React.FC = () => {
           </div>
       )}
 
-      {/* GRADING MODAL (Unchanged but included for completeness) */}
+      {/* GRADING MODAL */}
       {isGradingOpen && selectedStudent && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
               <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50">
@@ -745,7 +732,7 @@ const Epmi: React.FC = () => {
           </div>
       )}
 
-      {/* CONFIRM PROMOTION MODAL (Unchanged) */}
+      {/* CONFIRM PROMOTION MODAL */}
       {promoteStudent && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
               <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50 text-center">
@@ -764,7 +751,7 @@ const Epmi: React.FC = () => {
           </div>
       )}
 
-      {/* CONFIRM GRADUATION MODAL (Unchanged) */}
+      {/* CONFIRM GRADUATION MODAL */}
       {graduateStudent && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
               <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50 text-center">
@@ -783,7 +770,7 @@ const Epmi: React.FC = () => {
           </div>
       )}
 
-      {/* CERTIFICATE MODAL (Unchanged) */}
+      {/* CERTIFICATE MODAL */}
       {certificateStudent && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-fadeIn overflow-auto print-only-visible">
               <div className="bg-[#fffdf5] w-full max-w-4xl aspect-[1.414/1] shadow-2xl relative border-[16px] border-double border-[#b49b57] p-12 flex flex-col items-center justify-between text-center print:shadow-none print:w-full print:h-full print:absolute print:inset-0 print:m-0 print:border-[10px]">

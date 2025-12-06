@@ -96,6 +96,7 @@ export interface Course {
   id: string;
   nombre: string;
   type: 'BASICO' | 'EPMI_I' | 'EPMI_II' | 'ESCUELA';
+  categoria?: string; // PDF 5.9: Para agrupar "Escuela de Diáconos", "Intercesión", etc.
   orden: number;
   // UI Specific properties
   descripcion?: string;
@@ -103,6 +104,7 @@ export interface Course {
   tipo?: 'CENTRAL' | 'LOCAL'; 
   materials?: CourseMaterial[];
   enrolledStudentIds?: string[];
+  requests?: string[]; // Pending enrollment requests (Member IDs)
 }
 
 // Members (Ficha 360 - PDF Part 5.1 & 7.2.2)
@@ -305,6 +307,10 @@ export interface GlobalState {
   intercesionLogs: IntercesionLog[];
   logIntercesionAttendance: (date: string, type: IntercesionLog['tipo'], memberId: string, present: boolean) => void;
   assignIntercesionGroup: (memberId: string, groupId: string | null) => void;
+  // CRUD Intercesion Groups
+  addIntercesionGroup: (group: IntercesionGroup) => void;
+  updateIntercesionGroup: (id: string, data: Partial<IntercesionGroup>) => void;
+  deleteIntercesionGroup: (id: string) => void;
   
   finances: FinanceTransaction[];
   addTransaction: (t: FinanceTransaction) => void;
@@ -320,6 +326,8 @@ export interface GlobalState {
   enrollStudentInCourse: (courseId: string, memberId: string) => void; // New
   unenrollStudentFromCourse: (courseId: string, memberId: string) => void; // New
   addCourseMaterial: (courseId: string, material: CourseMaterial) => void; // New
+  requestCourseEnrollment: (courseId: string, memberId: string) => void; // New
+  approveCourseEnrollment: (courseId: string, memberId: string, approved: boolean) => void; // New
 
   // EPMI Logic
   epmiEnrollments: EpmiEnrollment[];

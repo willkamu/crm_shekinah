@@ -34,21 +34,25 @@ export const MOCK_INTERCESION_LOGS: IntercesionLog[] = [];
 
 // PDF Part 18.1.5: Cursos Básicos Específicos
 export const MOCK_COURSES: Course[] = [
-  { id: 'CRS-01', nombre: '1. Creciendo en Gracia', type: 'BASICO', orden: 1, materials: [], enrolledStudentIds: [] },
-  { id: 'CRS-02', nombre: '2. Sana Doctrina', type: 'BASICO', orden: 2, materials: [], enrolledStudentIds: [] },
-  { id: 'CRS-03', nombre: '3. Verdadera Alabanza', type: 'BASICO', orden: 3, materials: [], enrolledStudentIds: [] },
-  { id: 'CRS-04', nombre: '4. Evangelismo', type: 'BASICO', orden: 4, materials: [], enrolledStudentIds: [] },
-  { id: 'CRS-05', nombre: '5. Conservación de Resultados', type: 'BASICO', orden: 5, materials: [], enrolledStudentIds: [] },
-  { id: 'CRS-06', nombre: '6. Apologética', type: 'BASICO', orden: 6, materials: [], enrolledStudentIds: [] },
-  { id: 'CRS-07', nombre: '7. Mayordomía', type: 'BASICO', orden: 7, materials: [], enrolledStudentIds: [] }, 
+  { id: 'CRS-01', nombre: '1. Creciendo en Gracia', type: 'BASICO', orden: 1, materials: [], enrolledStudentIds: [], requests: [] },
+  { id: 'CRS-02', nombre: '2. Sana Doctrina', type: 'BASICO', orden: 2, materials: [], enrolledStudentIds: [], requests: [] },
+  { id: 'CRS-03', nombre: '3. Verdadera Alabanza', type: 'BASICO', orden: 3, materials: [], enrolledStudentIds: [], requests: [] },
+  { id: 'CRS-04', nombre: '4. Evangelismo', type: 'BASICO', orden: 4, materials: [], enrolledStudentIds: [], requests: [] },
+  { id: 'CRS-05', nombre: '5. Conservación de Resultados', type: 'BASICO', orden: 5, materials: [], enrolledStudentIds: [], requests: [] },
+  { id: 'CRS-06', nombre: '6. Apologética', type: 'BASICO', orden: 6, materials: [], enrolledStudentIds: [], requests: [] },
+  { id: 'CRS-07', nombre: '7. Mayordomía', type: 'BASICO', orden: 7, materials: [], enrolledStudentIds: [], requests: [] }, 
   
   // EPMI Specific
-  { id: 'EPMI-101', nombre: 'Doctrina Básica', type: 'EPMI_I', orden: 1, materials: [], enrolledStudentIds: [] },
-  { id: 'EPMI-102', nombre: 'Vida Espiritual', type: 'EPMI_I', orden: 2, materials: [], enrolledStudentIds: [] },
-  { id: 'EPMI-103', nombre: 'Carácter Cristiano', type: 'EPMI_I', orden: 3, materials: [], enrolledStudentIds: [] },
+  { id: 'EPMI-101', nombre: 'Doctrina Básica', type: 'EPMI_I', orden: 1, materials: [], enrolledStudentIds: [], requests: [] },
+  { id: 'EPMI-102', nombre: 'Vida Espiritual', type: 'EPMI_I', orden: 2, materials: [], enrolledStudentIds: [], requests: [] },
+  { id: 'EPMI-103', nombre: 'Carácter Cristiano', type: 'EPMI_I', orden: 3, materials: [], enrolledStudentIds: [], requests: [] },
   
-  { id: 'EPMI-201', nombre: 'Homilética', type: 'EPMI_II', orden: 1, materials: [], enrolledStudentIds: [] },
-  { id: 'EPMI-202', nombre: 'Liderazgo', type: 'EPMI_II', orden: 2, materials: [], enrolledStudentIds: [] },
+  { id: 'EPMI-201', nombre: 'Homilética', type: 'EPMI_II', orden: 1, materials: [], enrolledStudentIds: [], requests: [] },
+  { id: 'EPMI-202', nombre: 'Liderazgo', type: 'EPMI_II', orden: 2, materials: [], enrolledStudentIds: [], requests: [] },
+
+  // PDF 5.9 Escuelas
+  { id: 'ESC-01', nombre: 'Guerra Espiritual Avanzada', type: 'ESCUELA', categoria: 'Escuela de Intercesión', orden: 1, materials: [], enrolledStudentIds: [], requests: [] },
+  { id: 'ESC-02', nombre: 'Servicio y Protocolo', type: 'ESCUELA', categoria: 'Escuela de Diáconos', orden: 1, materials: [], enrolledStudentIds: [], requests: [] },
 ];
 
 export const MOCK_MEMBERS: Member[] = [
