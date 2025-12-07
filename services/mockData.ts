@@ -166,6 +166,26 @@ export const MOCK_MEMBERS: Member[] = [
     ministryIds: [],
     anexoId: 'ANX-01',
     photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Student1'
+  },
+  // NEW: Leader of Intercession (For Demo)
+  {
+    id: 'MEM-012',
+    nombres: 'Líder Intercesión',
+    telefono: '999-555-123',
+    sex: 'F',
+    estatus: SpiritualStatus.ACTIVE_MINISTRY,
+    cargo: 'Líder',
+    attendance_level: 'VERDE',
+    fidelity_level: 'VERDE',
+    service_level: 'VERDE',
+    candidate_epmi: true,
+    completed_basicos: true,
+    coursesCompletedIds: ['CRS-01'],
+    ministryIds: ['MIN-04'],
+    intercesionGroupId: 'GRP-1',
+    anexoId: 'ANX-01',
+    photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=InterLeader',
+    habilidades: ['Oración', 'Ayuno']
   }
 ];
 
@@ -211,8 +231,9 @@ export const MOCK_TRIPS: MissionTrip[] = [
     destino: 'Uchus - Ancash',
     fechaSalida: '2024-03-15',
     fechaRetorno: '2024-03-17',
-    status: 'EN_REVISION',
+    status: 'PLANIFICACION', // Updated to allow testing actions
     responsableId: 'MEM-002',
+    assignedGroupId: 'GRP-1', 
     participants: [
       { memberId: 'MEM-INT-1', role: 'INTERCESOR', status: 'PROPUESTO' }
     ]

@@ -182,6 +182,8 @@ const Courses: React.FC = () => {
           sesionesTotales: offeringSessions,
           sesionesRealizadas: 0,
           sessions: [],
+          evaluations: [],
+          studentGrades: [],
           active: true
       });
       

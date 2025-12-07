@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../App.tsx';
 import { Member, IntercesionLog, IntercesionGroup } from '../types';
-import { Flame, Star, Calendar, Users, ChevronRight, AlertCircle, Trophy, UserPlus, Check, X, Search, Trash2, Download, PieChart, Plus, Edit2, Plane } from 'lucide-react';
+import { Flame, Star, Calendar, Users, ChevronRight, AlertCircle, Trophy, UserPlus, Check, X, Search, Trash2, Download, PieChart, Plus, Edit2, Plane, Lock } from 'lucide-react';
 
 const Intercesion: React.FC = () => {
   const { intercesionGroups, members, intercesionLogs, logIntercesionAttendance, assignIntercesionGroup, addIntercesionGroup, updateIntercesionGroup, deleteIntercesionGroup, currentUser, notify } = useApp();
@@ -35,6 +35,17 @@ const Intercesion: React.FC = () => {
       if (logCount > 1) return 2;
       return 1;
   };
+
+  // --- SECURITY CHECK ---
+  const canManageGroup = (group: IntercesionGroup) => {
+      // Pastor/Minister can manage all
+      if (['PASTOR_PRINCIPAL', 'MINISTRO'].includes(currentUser.role)) return true;
+      // Leader can manage ONLY their assigned group
+      if (currentUser.role === 'LIDER_INTERCESION' && group.liderId === currentUser.memberId) return true;
+      return false;
+  };
+
+  const isGlobalAdmin = ['PASTOR_PRINCIPAL', 'MINISTRO'].includes(currentUser.role);
 
   // --- MEMBER HANDLERS ---
   const handleAddMember = () => {
@@ -191,39 +202,50 @@ const Intercesion: React.FC = () => {
       {/* TAB: GRUPOS */}
       {activeTab === 'GRUPOS' && (
           <div className="space-y-6">
-              <div className="flex justify-end">
-                  <button 
-                    onClick={handleOpenCreateGroup}
-                    className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-glow hover:bg-red-700 transition-colors flex items-center gap-2"
-                  >
-                      <Plus className="w-4 h-4" /> Nuevo Grupo
-                  </button>
-              </div>
+              {isGlobalAdmin && (
+                  <div className="flex justify-end">
+                      <button 
+                        onClick={handleOpenCreateGroup}
+                        className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-glow hover:bg-red-700 transition-colors flex items-center gap-2"
+                      >
+                          <Plus className="w-4 h-4" /> Nuevo Grupo
+                      </button>
+                  </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {intercesionGroups.map(group => {
                       const groupMembers = getGroupMembers(group.id);
                       const leader = members.find(m => m.id === group.liderId);
+                      const hasPermission = canManageGroup(group);
                       
                       return (
-                          <div key={group.id} className="bg-white rounded-[2rem] border border-slate-100 shadow-card hover:shadow-lg transition-all overflow-hidden flex flex-col h-full relative">
-                              {/* ACTIONS ALWAYS VISIBLE */}
-                              <div className="absolute top-4 right-4 flex gap-1 z-10">
-                                  <button 
-                                    onClick={() => handleOpenEditGroup(group)} 
-                                    className="p-2 bg-slate-50 rounded-full text-slate-500 hover:text-brand-blue hover:bg-white shadow-sm border border-slate-100 transition-all"
-                                    title="Editar Grupo"
-                                  >
-                                      <Edit2 className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDeleteGroup(group.id)} 
-                                    className="p-2 bg-slate-50 rounded-full text-slate-500 hover:text-red-500 hover:bg-white shadow-sm border border-slate-100 transition-all"
-                                    title="Eliminar Grupo"
-                                  >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                              </div>
+                          <div key={group.id} className="bg-white rounded-[2rem] border border-slate-100 shadow-card hover:shadow-lg transition-all overflow-hidden flex flex-col h-full relative group/card">
+                              {/* ACTIONS ALWAYS VISIBLE IF PERMISSION */}
+                              {isGlobalAdmin && (
+                                  <div className="absolute top-4 right-4 flex gap-1 z-10">
+                                      <button 
+                                        onClick={() => handleOpenEditGroup(group)} 
+                                        className="p-2 bg-slate-50 rounded-full text-slate-500 hover:text-brand-blue hover:bg-white shadow-sm border border-slate-100 transition-all"
+                                        title="Editar Grupo"
+                                      >
+                                          <Edit2 className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button 
+                                        onClick={() => handleDeleteGroup(group.id)} 
+                                        className="p-2 bg-slate-50 rounded-full text-slate-500 hover:text-red-500 hover:bg-white shadow-sm border border-slate-100 transition-all"
+                                        title="Eliminar Grupo"
+                                      >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                  </div>
+                              )}
+                              
+                              {!hasPermission && !isGlobalAdmin && (
+                                  <div className="absolute top-4 right-4 z-10 opacity-50">
+                                      <Lock className="w-4 h-4 text-slate-400" />
+                                  </div>
+                              )}
 
                               <div className="p-6 pb-4 bg-slate-50/30">
                                   <div className="flex justify-between items-start mb-4">
@@ -251,24 +273,28 @@ const Intercesion: React.FC = () => {
                                                   <img src={m.photoUrl} className="w-7 h-7 rounded-full border border-white bg-slate-200" title={m.nombres} />
                                                   <span className="text-xs font-bold text-slate-600 truncate max-w-[120px]">{m.nombres}</span>
                                               </div>
-                                              <button 
-                                                onClick={() => handleRemoveMember(m.id)}
-                                                className="text-slate-300 hover:text-red-500 transition-colors p-1"
-                                                title="Quitar del grupo"
-                                              >
-                                                  <X className="w-3 h-3" />
-                                              </button>
+                                              {hasPermission && (
+                                                  <button 
+                                                    onClick={() => handleRemoveMember(m.id)}
+                                                    className="text-slate-300 hover:text-red-500 transition-colors p-1"
+                                                    title="Quitar del grupo"
+                                                  >
+                                                      <X className="w-3 h-3" />
+                                                  </button>
+                                              )}
                                           </div>
                                       ))}
                                       {groupMembers.length === 0 && <p className="text-xs text-slate-300 italic text-center py-2">Grupo vacío</p>}
                                   </div>
 
-                                  <button 
-                                    onClick={() => { setGroupToAssignId(group.id); setIsAssignOpen(true); }}
-                                    className="w-full py-2 bg-red-50 text-red-600 text-xs font-bold rounded-xl hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
-                                  >
-                                      <UserPlus className="w-3.5 h-3.5" /> Agregar Intercesor
-                                  </button>
+                                  {hasPermission && (
+                                      <button 
+                                        onClick={() => { setGroupToAssignId(group.id); setIsAssignOpen(true); }}
+                                        className="w-full py-2 bg-red-50 text-red-600 text-xs font-bold rounded-xl hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
+                                      >
+                                          <UserPlus className="w-3.5 h-3.5" /> Agregar Intercesor
+                                      </button>
+                                  )}
                               </div>
                           </div>
                       )

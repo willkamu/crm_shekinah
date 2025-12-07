@@ -149,6 +149,19 @@ export interface ClassSession {
   completed: boolean;
 }
 
+// Evaluation System Types
+export interface EvaluationItem {
+    id: string;
+    name: string; // e.g., "Examen Final"
+    weight: number; // e.g., 50 (percentage)
+}
+
+export interface StudentGrade {
+    memberId: string;
+    scores: Record<string, number>; // evaluationId -> score (0-20)
+    finalGrade: number;
+}
+
 // Course Offering (Instance of a Course being taught) - PDF 7.4.2
 export interface CourseOffering {
   id: string;
@@ -163,6 +176,8 @@ export interface CourseOffering {
   sesionesTotales: number;
   sesionesRealizadas: number;
   sessions: ClassSession[]; // Generated dates
+  evaluations: EvaluationItem[]; // Syllabus
+  studentGrades: StudentGrade[]; // Grades per student
   active: boolean;
 }
 
@@ -298,6 +313,7 @@ export interface MissionTrip {
   fechaRetorno: string;
   status: 'PLANIFICACION' | 'EN_REVISION' | 'APROBADO' | 'REALIZADO';
   responsableId: string;
+  assignedGroupId?: string; // LINK TO INTERCESION GROUP (PDF 7.6.1)
   participants: TripParticipant[];
 }
 
@@ -399,6 +415,7 @@ export interface GlobalState {
   updateCourseOffering: (id: string, data: Partial<CourseOffering>) => void;
   deleteCourseOffering: (id: string) => void; 
   updateOfferingSession: (offeringId: string, sessionId: string, newDate: string) => void; 
+  registerCourseGrade: (offeringId: string, memberId: string, grade: number) => void; // Traceability
 
   // EPMI Logic
   epmiEnrollments: EpmiEnrollment[];

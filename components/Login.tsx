@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../App.tsx';
-import { Church, Lock, ArrowRight, User, Shield, GraduationCap, Mail } from 'lucide-react';
+import { Church, Lock, User, Flame } from 'lucide-react';
 
 const Login: React.FC = () => {
   const { login } = useApp();
@@ -97,9 +97,12 @@ const Login: React.FC = () => {
                         Acceder al Panel
                     </button>
 
-                    <div className="pt-4 flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        <button type="button" onClick={() => login('PASTOR_PRINCIPAL')} className="hover:text-indigo-500 transition-colors">Demo Pastor</button>
-                        <button type="button" onClick={() => login('LIDER_ANEXO')} className="hover:text-indigo-500 transition-colors">Demo Líder</button>
+                    <div className="pt-4 grid grid-cols-3 gap-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-center">
+                        <button type="button" onClick={() => login('PASTOR_PRINCIPAL')} className="hover:text-indigo-500 transition-colors p-1 border border-slate-100 rounded bg-slate-50">Demo Pastor</button>
+                        <button type="button" onClick={() => login('LIDER_ANEXO')} className="hover:text-indigo-500 transition-colors p-1 border border-slate-100 rounded bg-slate-50">Demo Líder</button>
+                        <button type="button" onClick={() => login('LIDER_INTERCESION')} className="hover:text-red-500 transition-colors p-1 border border-red-100 rounded bg-red-50 text-red-400 flex flex-col items-center justify-center gap-1">
+                            <Flame className="w-3 h-3"/> Demo Inter.
+                        </button>
                     </div>
                 </form>
             )}

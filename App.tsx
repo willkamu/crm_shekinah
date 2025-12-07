@@ -260,7 +260,7 @@ const App: React.FC = () => {
   };
 
   const login = (emailOrRole: string, password?: string): boolean => {
-      // 1. DEMO SHORTCUTS (Keep existing for ease of testing)
+      // 1. DEMO SHORTCUTS
       if (emailOrRole === 'PASTOR_PRINCIPAL') {
           setCurrentUser({ role: 'PASTOR_PRINCIPAL', anexoId: 'ALL', name: 'Pastor Cobertura' });
           setIsAuthenticated(true);
@@ -278,6 +278,12 @@ const App: React.FC = () => {
       }
       if (emailOrRole === 'MIEMBRO') {
           setCurrentUser({ role: 'MIEMBRO', anexoId: 'ANX-01', name: 'Maria Gonzalez', memberId: 'MEM-002' });
+          setIsAuthenticated(true);
+          return true;
+      }
+      // NEW: DEMO FOR INTERCESION LEADER
+      if (emailOrRole === 'LIDER_INTERCESION') {
+          setCurrentUser({ role: 'LIDER_INTERCESION', anexoId: 'ALL', name: 'Líder Intercesión', memberId: 'MEM-012' }); // MOCK LEADER OF GROUP 1
           setIsAuthenticated(true);
           return true;
       }
@@ -647,6 +653,25 @@ const App: React.FC = () => {
       notify("Fecha de sesión actualizada");
   };
 
+  const registerCourseGrade = (offeringId: string, memberId: string, grade: number) => {
+      setCourseOfferings(prev => prev.map(o => {
+          if (o.id !== offeringId) return o;
+          const currentGrades = o.studentGrades || [];
+          const idx = currentGrades.findIndex(g => g.memberId === memberId);
+          const newGrades = [...currentGrades];
+          
+          if (idx >= 0) {
+              newGrades[idx] = { ...newGrades[idx], finalGrade: grade };
+          } else {
+              newGrades.push({ memberId, scores: {}, finalGrade: grade });
+          }
+          
+          return { ...o, studentGrades: newGrades };
+      }));
+      logAudit('REGISTER_GRADE', `Offering: ${offeringId}`, `Member: ${memberId}, Grade: ${grade}`);
+      notify("Nota final registrada");
+  };
+
   const enrollEpmiStudent = (memberId: string) => {
     if (currentUser.role !== 'PASTOR_PRINCIPAL') {
         notify('Solo el Pastor Cobertura puede autorizar ingreso a EPMI', 'error');
@@ -734,7 +759,7 @@ const App: React.FC = () => {
     monthlyReports, addMonthlyReport, updateMonthlyReport,
     courses, addCourse, updateCourse, deleteCourse,
     enrollStudentInCourse, unenrollStudentFromCourse, addCourseMaterial, requestCourseEnrollment, approveCourseEnrollment,
-    courseOfferings, openCourseOffering, updateCourseOffering, deleteCourseOffering, updateOfferingSession, // NEW
+    courseOfferings, openCourseOffering, updateCourseOffering, deleteCourseOffering, updateOfferingSession, registerCourseGrade,
     epmiEnrollments, enrollEpmiStudent, updateEpmiStudent,
     trips, addTrip, updateTrip, markTripAttendance,
     history, addHistoryNote,
