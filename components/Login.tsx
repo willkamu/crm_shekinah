@@ -6,6 +6,15 @@ import { Church, Lock, ArrowRight, User, Shield, GraduationCap, Mail } from 'luc
 const Login: React.FC = () => {
   const { login } = useApp();
   const [activeTab, setActiveTab] = useState<'MEMBER' | 'LEADER'>('MEMBER');
+  
+  // Real Login State
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLeaderLogin = (e: React.FormEvent) => {
+      e.preventDefault();
+      login(email, password);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f0f4f8] p-6 relative overflow-hidden">
@@ -59,12 +68,14 @@ const Login: React.FC = () => {
             )}
 
             {activeTab === 'LEADER' && (
-                <div className="space-y-4 animate-fadeIn">
+                <form onSubmit={handleLeaderLogin} className="space-y-4 animate-fadeIn">
                     <div className="relative">
                         <input 
                             type="email" 
                             placeholder="Usuario / Correo" 
                             className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-100 text-slate-700 font-bold text-sm outline-none transition-shadow"
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
                         />
                         <User className="w-5 h-5 text-slate-300 absolute left-4 top-4" />
                     </div>
@@ -73,22 +84,24 @@ const Login: React.FC = () => {
                             type="password" 
                             placeholder="Contraseña" 
                             className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-100 text-slate-700 font-bold text-sm outline-none transition-shadow"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
                         />
                         <Lock className="w-5 h-5 text-slate-300 absolute left-4 top-4" />
                     </div>
                     
                     <button 
-                        onClick={() => login('PASTOR_PRINCIPAL')}
+                        type="submit"
                         className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
                     >
                         Acceder al Panel
                     </button>
 
                     <div className="pt-4 flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        <button onClick={() => login('LIDER_ANEXO')} className="hover:text-indigo-500 transition-colors">Demo Líder</button>
-                        <button onClick={() => login('MAESTRO_CASA')} className="hover:text-indigo-500 transition-colors">Demo Maestro</button>
+                        <button type="button" onClick={() => login('PASTOR_PRINCIPAL')} className="hover:text-indigo-500 transition-colors">Demo Pastor</button>
+                        <button type="button" onClick={() => login('LIDER_ANEXO')} className="hover:text-indigo-500 transition-colors">Demo Líder</button>
                     </div>
-                </div>
+                </form>
             )}
         </div>
         

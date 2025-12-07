@@ -53,6 +53,7 @@ export const MOCK_COURSES: Course[] = [
   // PDF 5.9 Escuelas
   { id: 'ESC-01', nombre: 'Guerra Espiritual Avanzada', type: 'ESCUELA', categoria: 'Escuela de Intercesión', orden: 1, materials: [], enrolledStudentIds: [], requests: [] },
   { id: 'ESC-02', nombre: 'Servicio y Protocolo', type: 'ESCUELA', categoria: 'Escuela de Diáconos', orden: 1, materials: [], enrolledStudentIds: [], requests: [] },
+  { id: 'ESC-03', nombre: 'Teoría Musical', type: 'ESCUELA', categoria: 'Escuela de Música', orden: 1, materials: [], enrolledStudentIds: [], requests: [] },
 ];
 
 export const MOCK_MEMBERS: Member[] = [
@@ -60,8 +61,10 @@ export const MOCK_MEMBERS: Member[] = [
     id: 'MEM-001',
     nombres: 'Pastor Principal',
     telefono: '+51 999 999 999',
+    sex: 'F', // Just for demo variety, can change
     direccion: 'Residencia Pastoral',
     estatus: SpiritualStatus.STABLE,
+    cargo: 'Pastor Cobertura',
     attendance_level: 'VERDE',
     fidelity_level: 'VERDE',
     service_level: 'VERDE',
@@ -77,7 +80,9 @@ export const MOCK_MEMBERS: Member[] = [
     id: 'MEM-002',
     nombres: 'Maria Gonzalez', 
     telefono: '+51 988 888 888',
+    sex: 'F',
     estatus: SpiritualStatus.ACTIVE_MINISTRY,
+    cargo: 'Ministro', // CHANGED FROM MINISTRA (NEUTRAL)
     attendance_level: 'VERDE',
     fidelity_level: 'VERDE',
     service_level: 'VERDE',
@@ -95,7 +100,9 @@ export const MOCK_MEMBERS: Member[] = [
     id: 'MEM-003',
     nombres: 'Hno. Roberto', 
     telefono: '999-111-222',
+    sex: 'M',
     estatus: SpiritualStatus.STABLE,
+    cargo: 'Líder',
     attendance_level: 'VERDE',
     fidelity_level: 'AMARILLO',
     service_level: 'VERDE',
@@ -111,7 +118,9 @@ export const MOCK_MEMBERS: Member[] = [
     id: 'MEM-INT-1',
     nombres: 'Intercesor Fiel',
     telefono: '999-000-111',
+    sex: 'M',
     estatus: SpiritualStatus.ACTIVE_MINISTRY,
+    cargo: 'Diácono',
     attendance_level: 'VERDE',
     fidelity_level: 'VERDE',
     service_level: 'VERDE',
@@ -127,7 +136,9 @@ export const MOCK_MEMBERS: Member[] = [
     id: 'MEM-NEW',
     nombres: 'Nuevo Creyente',
     telefono: '000-000-000',
+    sex: 'M',
     estatus: SpiritualStatus.NEW,
+    cargo: 'Miembro',
     attendance_level: 'AMARILLO', 
     fidelity_level: 'ROJO', 
     service_level: 'ROJO', 
@@ -143,7 +154,9 @@ export const MOCK_MEMBERS: Member[] = [
     id: 'MEM-EPMI-1',
     nombres: 'Estudiante EPMI I',
     telefono: '123-456-789',
+    sex: 'F',
     estatus: SpiritualStatus.STABLE,
+    cargo: 'Obrera',
     attendance_level: 'VERDE',
     fidelity_level: 'VERDE',
     service_level: 'AMARILLO',

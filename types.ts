@@ -11,7 +11,7 @@ export enum EventType {
   CASA = 'Reunión Casa'
 }
 
-// Spiritual Status (PDF Part 18.3)
+// Spiritual Status (Health) - PDF Part 18.3
 export enum SpiritualStatus {
   NEW = 'Nuevo',
   IN_FORMATION = 'En Formación',
@@ -23,18 +23,53 @@ export enum SpiritualStatus {
   INACTIVE = 'No Activo'
 }
 
+// Ecclesiastical Roles (Ranks/Titles) - Updated based on User Feedback
+export type EcclesiasticalRole = 
+  | 'Pastor Cobertura' // Replaces Pastor Principal
+  | 'Pastor'
+  | 'Pastora' // Gender variant
+  | 'Ministro' // Neutral/Male (No Ministra)
+  | 'Ministro Ordenado'
+  | 'Anciano'
+  | 'Diácono'
+  | 'Diaconisa' // Gender variant
+  | 'Obrero'
+  | 'Obrera' // Gender variant
+  | 'Líder'
+  | 'Evangelista'
+  | 'Predicador'
+  | 'Predicadora' // Gender variant
+  | 'Maestro'
+  | 'Maestra' // Gender variant
+  | 'Siervo'
+  | 'Sierva' // Gender variant
+  | 'Miembro'
+  | 'Visitante';
+
 // Indicator Levels (Traffic Lights)
 export type IndicatorLevel = 'VERDE' | 'AMARILLO' | 'NARANJA' | 'ROJO';
 
-// Roles (PDF Part 5.2)
+// Roles (System Access) - PDF Part 5.2
 export type UserRole = 
   | 'PASTOR_PRINCIPAL' 
   | 'MINISTRO' 
   | 'LIDER_ANEXO' 
+  | 'LIDER_INTERCESION' // Added specific role
   | 'MAESTRO_CASA' 
   | 'SECRETARIA_CASA' 
   | 'SECRETARIA_ANEXO'
   | 'MIEMBRO';
+
+// System User (Login Credentials) - PDF Part 8.2
+export interface SystemUser {
+  id: string;
+  email: string;
+  password?: string; // In real app this is hashed
+  role: UserRole;
+  memberId?: string; // Link to Member Profile
+  anexoId?: string; // Scope
+  name: string; // Display Name
+}
 
 // Notifications (PDF Part 8.12)
 export interface Notification {
@@ -107,11 +142,36 @@ export interface Course {
   requests?: string[]; // Pending enrollment requests (Member IDs)
 }
 
+export interface ClassSession {
+  id: string;
+  number: number;
+  date: string; // YYYY-MM-DD
+  completed: boolean;
+}
+
+// Course Offering (Instance of a Course being taught) - PDF 7.4.2
+export interface CourseOffering {
+  id: string;
+  courseId: string;
+  courseName: string; // Denormalized
+  anexoId: string; // Or 'CENTRAL'
+  maestroId: string;
+  maestroName: string;
+  horario: string;
+  fechaInicio: string;
+  diaSemana: number; // 0=Sun, 1=Mon, etc.
+  sesionesTotales: number;
+  sesionesRealizadas: number;
+  sessions: ClassSession[]; // Generated dates
+  active: boolean;
+}
+
 // Members (Ficha 360 - PDF Part 5.1 & 7.2.2)
 export interface Member {
   id: string;
   nombres: string;
   telefono: string;
+  sex: 'M' | 'F'; // Gender for Role Logic
   direccion?: string;
   fechaNacimiento?: string;
   estadoCivil?: 'Soltero(a)' | 'Casado(a)' | 'Viudo(a)' | 'Divorciado(a)';
@@ -123,8 +183,9 @@ export interface Member {
   anexoId: string;
   teachingHouseId?: string;
   
-  // Estatus Espiritual
+  // Estatus Espiritual & Cargo
   estatus: SpiritualStatus;
+  cargo: EcclesiasticalRole; // Nuevo campo: Título Ministerial
   
   // Semáforos Automáticos (Calculados)
   attendance_level: IndicatorLevel;
@@ -259,11 +320,14 @@ export interface HistoryRecord {
 
 // Global Context
 export interface GlobalState {
-  // Auth
+  // Auth & Users
   isAuthenticated: boolean;
-  currentUser: { role: UserRole; anexoId: string | 'ALL'; name: string; memberId?: string }; // Added memberId link
+  currentUser: { role: UserRole; anexoId: string | 'ALL'; name: string; memberId?: string }; 
   setCurrentUser: (user: { role: UserRole; anexoId: string | 'ALL'; name: string; memberId?: string }) => void;
-  login: (role: UserRole) => void;
+  systemUsers: SystemUser[]; // List of all system users
+  addSystemUser: (user: SystemUser) => void;
+  deleteSystemUser: (id: string) => void;
+  login: (emailOrRole: string, password?: string) => boolean; // Updated signature
   logout: () => void;
   
   notifications: Notification[];
@@ -323,11 +387,18 @@ export interface GlobalState {
   addCourse: (c: Course) => void;
   updateCourse: (id: string, data: Partial<Course>) => void;
   deleteCourse: (id: string) => void;
-  enrollStudentInCourse: (courseId: string, memberId: string) => void; // New
-  unenrollStudentFromCourse: (courseId: string, memberId: string) => void; // New
-  addCourseMaterial: (courseId: string, material: CourseMaterial) => void; // New
-  requestCourseEnrollment: (courseId: string, memberId: string) => void; // New
-  approveCourseEnrollment: (courseId: string, memberId: string, approved: boolean) => void; // New
+  enrollStudentInCourse: (courseId: string, memberId: string) => void; 
+  unenrollStudentFromCourse: (courseId: string, memberId: string) => void; 
+  addCourseMaterial: (courseId: string, material: CourseMaterial) => void; 
+  requestCourseEnrollment: (courseId: string, memberId: string) => void; 
+  approveCourseEnrollment: (courseId: string, memberId: string, approved: boolean) => void; 
+  
+  // Course Offerings (Active Classes)
+  courseOfferings: CourseOffering[];
+  openCourseOffering: (offering: CourseOffering) => void;
+  updateCourseOffering: (id: string, data: Partial<CourseOffering>) => void;
+  deleteCourseOffering: (id: string) => void; 
+  updateOfferingSession: (offeringId: string, sessionId: string, newDate: string) => void; 
 
   // EPMI Logic
   epmiEnrollments: EpmiEnrollment[];

@@ -30,35 +30,46 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Menú PDF Parte 12.1 + EPMI based on Roles (STRICT FILTERING)
+  // Menú ESTRICTO según Manual (Parte 12.1 y 12.3)
   const navItems = [
-    // MEMBER SPECIFIC
-    { label: 'Mi Perfil', icon: UserCircle, path: '/profile', role: ['MIEMBRO'] }, 
+    // 1. MIEMBROS (Solo ven esto y Recursos/Eventos)
+    { label: 'Mi Perfil', icon: UserCircle, path: '/profile', role: ['MIEMBRO', 'PASTOR_PRINCIPAL'] }, 
     
-    // ADMIN / LEADER SPECIFIC
+    // 2. LÍDERES / PASTORES (Panel Operativo)
     { label: 'Panel', icon: LayoutDashboard, path: '/', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MAESTRO_CASA', 'SECRETARIA_CASA', 'SECRETARIA_ANEXO'] },
-    // Removed redundant 'Mi Anexo' for leaders, they use Panel
     
+    // 3. GESTIÓN DE ESTRUCTURA (Solo Pastor)
     { label: 'Sedes', icon: MapPin, path: '/sedes', role: ['PASTOR_PRINCIPAL', 'MINISTRO'] },
     
-    // Leaders can see members of their scope
+    // 4. DIRECTORIO (Líderes ven su gente, Pastor ve todo)
     { label: 'Miembros', icon: Users, path: '/members', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MAESTRO_CASA', 'SECRETARIA_CASA', 'SECRETARIA_ANEXO'] },
     
-    { label: 'Casas', icon: HomeIcon, path: '/casas', role: ['LIDER_ANEXO', 'MAESTRO_CASA', 'PASTOR_PRINCIPAL'] }, 
-    { label: 'Ministerios', icon: ShieldCheck, path: '/ministries', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO'] },
-    { label: 'Intercesión', icon: HeartHandshake, path: '/intercesion', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO'] }, 
+    // 5. CASAS (Gestión Global para Pastor)
+    { label: 'Casas', icon: HomeIcon, path: '/casas', role: ['PASTOR_PRINCIPAL', 'MINISTRO'] }, 
     
-    // Everyone sees Courses
+    // 6. MINISTERIOS (Líderes ven locales, Pastor globales)
+    { label: 'Ministerios', icon: ShieldCheck, path: '/ministries', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO'] },
+    
+    // 7. INTERCESIÓN (Solo Pastor y Líderes de Intercesión - NO Líder de Anexo)
+    { label: 'Intercesión', icon: HeartHandshake, path: '/intercesion', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_INTERCESION'] }, 
+    
+    // 8. FORMACIÓN (Todos ven catálogo, acciones dependen del rol)
     { label: 'Formación', icon: BookOpen, path: '/courses', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MAESTRO_CASA', 'MIEMBRO'] },
     
+    // 9. EPMI (Gestión de Escuela - Solo Pastor/Ministro)
     { label: 'EPMI', icon: GraduationCap, path: '/epmi', role: ['PASTOR_PRINCIPAL', 'MINISTRO'] }, 
-    { label: 'Viajes', icon: Plane, path: '/viajes', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MIEMBRO'] },
+    
+    // 10. VIAJES (Todos ven, Líderes proponen)
+    { label: 'Viajes', icon: Plane, path: '/viajes', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MIEMBRO', 'LIDER_INTERCESION'] },
+    
+    // 11. FINANZAS (Solo Pastor y Tesoreros)
     { label: 'Finanzas', icon: Wallet, path: '/finances', role: ['PASTOR_PRINCIPAL', 'LIDER_ANEXO', 'SECRETARIA_ANEXO'] },
     
-    // Everyone sees Events
-    { label: 'Eventos', icon: CalendarDays, path: '/plan', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MAESTRO_CASA', 'MIEMBRO', 'SECRETARIA_CASA', 'SECRETARIA_ANEXO'] }, 
+    // 12. EVENTOS (Todos)
+    { label: 'Eventos', icon: CalendarDays, path: '/plan', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MAESTRO_CASA', 'MIEMBRO', 'SECRETARIA_CASA', 'SECRETARIA_ANEXO', 'LIDER_INTERCESION'] }, 
     
-    { label: 'Recursos', icon: BookOpen, path: '/resources', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MAESTRO_CASA', 'MIEMBRO'] },
+    // 13. RECURSOS (Todos)
+    { label: 'Recursos', icon: BookOpen, path: '/resources', role: ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO', 'MAESTRO_CASA', 'MIEMBRO', 'LIDER_INTERCESION'] },
   ];
 
   function HomeIcon(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>}
@@ -67,7 +78,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const role = e.target.value as UserRole;
     if (role === 'PASTOR_PRINCIPAL') {
-      setCurrentUser({ role: 'PASTOR_PRINCIPAL', anexoId: 'ALL', name: 'Pastor Principal' });
+      setCurrentUser({ role: 'PASTOR_PRINCIPAL', anexoId: 'ALL', name: 'Pastor Cobertura' });
     } else if (role === 'LIDER_ANEXO') {
       setCurrentUser({ role: 'LIDER_ANEXO', anexoId: 'ANX-02', name: 'Hno. Roberto' });
     } else if (role === 'MIEMBRO') {
@@ -245,29 +256,32 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#f8fafc] p-4 pb-32 lg:pb-12 page-transition scroll-smooth">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#f8fafc] p-4 pb-28 lg:pb-12 page-transition scroll-smooth">
           <div className="max-w-7xl mx-auto">
              {children}
           </div>
         </main>
 
-        {/* MOBILE NAVIGATION BAR FIXED (SCROLLABLE & NO CUT-OFF) */}
-        <nav className="lg:hidden fixed bottom-4 left-4 right-4 bg-white/95 backdrop-blur-2xl border border-white/40 shadow-2xl shadow-slate-200/50 rounded-3xl flex overflow-x-auto no-scrollbar py-2 px-2 z-50 gap-1 items-center">
+        {/* MOBILE NAVIGATION BAR FIXED (Edge-to-Edge Scroll) */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] flex overflow-x-auto no-scrollbar z-50 justify-start items-center h-[70px]">
           {filteredNavItems.map((item) => (
             <Link 
               key={item.path} 
               to={item.path}
-              className={`relative flex flex-col items-center justify-center min-w-[75px] flex-shrink-0 transition-all duration-300 group`}
+              className={`relative flex flex-col items-center justify-center min-w-[75px] h-full flex-shrink-0 transition-all duration-200 group px-1`}
             >
               <div className={`
-                p-1.5 rounded-2xl mb-0.5 transition-all duration-300
-                ${location.pathname === item.path ? 'bg-brand-soft text-brand-blue shadow-soft scale-110' : 'text-slate-300 group-hover:bg-slate-50 group-hover:text-slate-500'}
+                p-1 rounded-xl mb-0.5 transition-all duration-200
+                ${location.pathname === item.path ? 'text-brand-blue' : 'text-slate-300 group-hover:text-slate-500'}
               `}>
-                 <item.icon className="w-6 h-6" strokeWidth={2.5} />
+                 <item.icon className="w-6 h-6" strokeWidth={location.pathname === item.path ? 2.5 : 2} />
               </div>
-              <span className={`text-[9px] font-bold leading-none ${location.pathname === item.path ? 'text-brand-blue' : 'text-slate-300'}`}>
+              <span className={`text-[9px] font-bold leading-none truncate w-full text-center ${location.pathname === item.path ? 'text-brand-blue' : 'text-slate-400'}`}>
                   {item.label}
               </span>
+              {location.pathname === item.path && (
+                  <div className="absolute top-0 w-10 h-1 bg-brand-blue rounded-b-lg"></div>
+              )}
             </Link>
           ))}
         </nav>

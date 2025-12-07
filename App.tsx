@@ -20,7 +20,7 @@ import Resources from './components/Resources';
 import Profile from './components/Profile';
 import NotificationsPage from './components/NotificationsPage';
 
-import { GlobalState, UserRole, Member, Anexo, Event, Ministry, FinanceTransaction, Course, TeachingHouse, IntercesionGroup, EpmiEnrollment, IntercesionLog, MissionTrip, HistoryRecord, Notification, MonthlyReport, AuditRecord, IndicatorLevel, CourseMaterial } from './types';
+import { GlobalState, UserRole, Member, Anexo, Event, Ministry, FinanceTransaction, Course, TeachingHouse, IntercesionGroup, EpmiEnrollment, IntercesionLog, MissionTrip, HistoryRecord, Notification, MonthlyReport, AuditRecord, IndicatorLevel, CourseMaterial, SystemUser, CourseOffering, ClassSession } from './types';
 import { MOCK_ANEXOS, MOCK_MEMBERS, MOCK_EVENTS, MOCK_MINISTRIES, MOCK_COURSES, MOCK_TEACHING_HOUSES, MOCK_FINANCES, MOCK_INTERCESION_GROUPS, MOCK_EPMI_ENROLLMENTS, MOCK_INTERCESION_LOGS, MOCK_TRIPS, MOCK_HISTORY, MOCK_NOTIFICATIONS, MOCK_MONTHLY_REPORTS } from './services/mockData';
 
 export const AppContext = createContext<GlobalState | undefined>(undefined);
@@ -44,14 +44,23 @@ const loadState = <T,>(key: string, fallback: T): T => {
   }
 };
 
+// INITIAL MOCK USERS (If no storage)
+const INITIAL_USERS: SystemUser[] = [
+    { id: 'USR-001', email: 'pastor@shekinah.com', password: 'admin', role: 'PASTOR_PRINCIPAL', name: 'Pastor Cobertura', anexoId: 'ALL' },
+    { id: 'USR-002', email: 'lider@shekinah.com', password: 'demo', role: 'LIDER_ANEXO', name: 'Hno. Roberto', anexoId: 'ANX-02', memberId: 'MEM-003' },
+    { id: 'USR-003', email: 'maestro@shekinah.com', password: 'demo', role: 'MAESTRO_CASA', name: 'Hna. Rosa', anexoId: 'ANX-01', memberId: 'MEM-006' },
+];
+
 const App: React.FC = () => {
   // --- STATE MANAGEMENT WITH PERSISTENCE ---
   const [isAuthenticated, setIsAuthenticated] = useState(false); // Session is transient
   const [currentUser, setCurrentUser] = useState<{ role: UserRole; anexoId: string | 'ALL'; name: string; memberId?: string }>({
     role: 'PASTOR_PRINCIPAL',
     anexoId: 'ALL',
-    name: 'Pastor Principal'
+    name: 'Pastor Cobertura' // Updated name
   });
+
+  const [systemUsers, setSystemUsers] = useState<SystemUser[]>(() => loadState('users', INITIAL_USERS));
 
   const [anexos, setAnexos] = useState<Anexo[]>(() => loadState('anexos', MOCK_ANEXOS));
   const [teachingHouses, setTeachingHouses] = useState<TeachingHouse[]>(() => loadState('houses', MOCK_TEACHING_HOUSES));
@@ -69,6 +78,8 @@ const App: React.FC = () => {
       // Ensure requests array exists for old data
       return storedCourses.map((c: Course) => ({...c, requests: c.requests || []}));
   });
+  const [courseOfferings, setCourseOfferings] = useState<CourseOffering[]>(() => loadState('offerings', []));
+  
   const [epmiEnrollments, setEpmiEnrollments] = useState<EpmiEnrollment[]>(() => loadState('epmi', MOCK_EPMI_ENROLLMENTS));
   const [trips, setTrips] = useState<MissionTrip[]>(() => loadState('trips', MOCK_TRIPS));
   const [history, setHistory] = useState<HistoryRecord[]>(() => loadState('history', MOCK_HISTORY));
@@ -78,6 +89,7 @@ const App: React.FC = () => {
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' | null } | null>(null);
 
   // --- PERSISTENCE EFFECTS ---
+  useEffect(() => localStorage.setItem('shekinah_users', JSON.stringify(systemUsers)), [systemUsers]);
   useEffect(() => localStorage.setItem('shekinah_anexos', JSON.stringify(anexos)), [anexos]);
   useEffect(() => localStorage.setItem('shekinah_houses', JSON.stringify(teachingHouses)), [teachingHouses]);
   useEffect(() => localStorage.setItem('shekinah_members', JSON.stringify(members)), [members]);
@@ -90,6 +102,7 @@ const App: React.FC = () => {
   useEffect(() => localStorage.setItem('shekinah_finances', JSON.stringify(finances)), [finances]);
   useEffect(() => localStorage.setItem('shekinah_reports', JSON.stringify(monthlyReports)), [monthlyReports]);
   useEffect(() => localStorage.setItem('shekinah_courses', JSON.stringify(courses)), [courses]);
+  useEffect(() => localStorage.setItem('shekinah_offerings', JSON.stringify(courseOfferings)), [courseOfferings]);
   useEffect(() => localStorage.setItem('shekinah_epmi', JSON.stringify(epmiEnrollments)), [epmiEnrollments]);
   useEffect(() => localStorage.setItem('shekinah_trips', JSON.stringify(trips)), [trips]);
   useEffect(() => localStorage.setItem('shekinah_history', JSON.stringify(history)), [history]);
@@ -218,27 +231,7 @@ const App: React.FC = () => {
   const resetSystem = () => {
       if(window.confirm("ADVERTENCIA: ¿Estás seguro de borrar TODOS los datos y volver al estado inicial?")) {
         localStorage.clear();
-        
-        setMembers(MOCK_MEMBERS);
-        setAnexos(MOCK_ANEXOS);
-        setFinances(MOCK_FINANCES);
-        setEvents(MOCK_EVENTS);
-        setNotifications(MOCK_NOTIFICATIONS);
-        setAuditLogs([]);
-        setTeachingHouses(MOCK_TEACHING_HOUSES);
-        setMinistries(MOCK_MINISTRIES);
-        setIntercesionGroups(MOCK_INTERCESION_GROUPS);
-        setIntercesionLogs(MOCK_INTERCESION_LOGS);
-        setCourses(MOCK_COURSES);
-        setEpmiEnrollments(MOCK_EPMI_ENROLLMENTS);
-        setTrips(MOCK_TRIPS);
-        setHistory(MOCK_HISTORY);
-        setAttendance({});
-        setEventRegistrations({});
-        setMonthlyReports(MOCK_MONTHLY_REPORTS);
-
-        notify('Sistema restaurado a valores de fábrica', 'success');
-        setTimeout(() => window.location.reload(), 1000);
+        window.location.reload();
       }
   };
 
@@ -254,20 +247,57 @@ const App: React.FC = () => {
       setAuditLogs(prev => [newLog, ...prev]);
   };
 
-  const login = (role: UserRole) => {
-      let user = { role: role, anexoId: 'ALL', name: 'Pastor Principal', memberId: undefined };
-      
-      if (role === 'LIDER_ANEXO') {
-          user = { role: 'LIDER_ANEXO', anexoId: 'ANX-02', name: 'Hno. Roberto', memberId: 'MEM-003' };
-      } else if (role === 'MAESTRO_CASA') {
-          user = { role: 'MAESTRO_CASA', anexoId: 'ANX-01', name: 'Hna. Rosa', memberId: 'MEM-006' }; 
-      } else if (role === 'MIEMBRO') {
-          user = { role: 'MIEMBRO', anexoId: 'ANX-01', name: 'Maria Gonzalez', memberId: 'MEM-002' };
+  const addSystemUser = (user: SystemUser) => {
+      setSystemUsers(prev => [...prev, user]);
+      logAudit('CREATE_USER', user.email, `Rol: ${user.role}`);
+      notify('Usuario de sistema creado');
+  };
+
+  const deleteSystemUser = (id: string) => {
+      setSystemUsers(prev => prev.filter(u => u.id !== id));
+      logAudit('DELETE_USER', id, 'Usuario eliminado');
+      notify('Usuario eliminado', 'error');
+  };
+
+  const login = (emailOrRole: string, password?: string): boolean => {
+      // 1. DEMO SHORTCUTS (Keep existing for ease of testing)
+      if (emailOrRole === 'PASTOR_PRINCIPAL') {
+          setCurrentUser({ role: 'PASTOR_PRINCIPAL', anexoId: 'ALL', name: 'Pastor Cobertura' });
+          setIsAuthenticated(true);
+          return true;
+      } 
+      if (emailOrRole === 'LIDER_ANEXO') {
+          setCurrentUser({ role: 'LIDER_ANEXO', anexoId: 'ANX-02', name: 'Hno. Roberto', memberId: 'MEM-003' });
+          setIsAuthenticated(true);
+          return true;
+      }
+      if (emailOrRole === 'MAESTRO_CASA') {
+          setCurrentUser({ role: 'MAESTRO_CASA', anexoId: 'ANX-01', name: 'Hna. Rosa', memberId: 'MEM-006' }); 
+          setIsAuthenticated(true);
+          return true;
+      }
+      if (emailOrRole === 'MIEMBRO') {
+          setCurrentUser({ role: 'MIEMBRO', anexoId: 'ANX-01', name: 'Maria Gonzalez', memberId: 'MEM-002' });
+          setIsAuthenticated(true);
+          return true;
       }
 
-      setCurrentUser(user as any);
-      setIsAuthenticated(true);
-      logAudit('LOGIN', user.name, `Inicio de sesión con rol ${role}`);
+      // 2. REAL AUTHENTICATION
+      const user = systemUsers.find(u => u.email === emailOrRole && u.password === password);
+      if (user) {
+          setCurrentUser({ 
+              role: user.role, 
+              anexoId: user.anexoId || 'ALL', 
+              name: user.name, 
+              memberId: user.memberId 
+          });
+          setIsAuthenticated(true);
+          logAudit('LOGIN', user.name, `Inicio de sesión con correo`);
+          return true;
+      }
+
+      notify("Credenciales incorrectas", "error");
+      return false;
   };
 
   const logout = () => {
@@ -331,11 +361,13 @@ const App: React.FC = () => {
   };
 
   const addMember = (member: Member) => {
-    const memberWithDate = {
+    const memberWithDefaults = {
         ...member,
+        cargo: member.cargo || 'Miembro', 
+        sex: member.sex || 'M', // Default sex if not provided
         joinedAt: new Date().toISOString()
     };
-    setMembers(prev => [...prev, memberWithDate]);
+    setMembers(prev => [...prev, memberWithDefaults]);
     logAudit('CREATE_MEMBER', member.nombres, `Anexo: ${member.anexoId}`);
     notify('Miembro agregado correctamente');
   };
@@ -569,9 +601,55 @@ const App: React.FC = () => {
       notify(approved ? "Alumno aprobado e inscrito" : "Solicitud rechazada");
   };
 
+  const openCourseOffering = (offering: CourseOffering) => {
+      // AUTO-GENERATE SESSIONS DATES
+      const sessions: ClassSession[] = [];
+      let currentDate = new Date(offering.fechaInicio);
+      const targetDay = offering.diaSemana; // 0-6
+
+      // Find first valid date
+      while(currentDate.getDay() !== targetDay) {
+          currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      for(let i = 1; i <= offering.sesionesTotales; i++) {
+          sessions.push({
+              id: `SES-${offering.id}-${i}`,
+              number: i,
+              date: currentDate.toISOString().split('T')[0],
+              completed: false
+          });
+          currentDate.setDate(currentDate.getDate() + 7); // Add 1 week
+      }
+
+      const finalOffering = { ...offering, sessions };
+      setCourseOfferings(prev => [...prev, finalOffering]);
+      logAudit('OPEN_COURSE_OFFERING', offering.courseName, `Maestro: ${offering.maestroName}`);
+      notify("Nueva clase abierta programada con " + sessions.length + " sesiones.");
+  };
+
+  const updateCourseOffering = (id: string, data: Partial<CourseOffering>) => {
+      setCourseOfferings(prev => prev.map(o => o.id === id ? { ...o, ...data } : o));
+      notify("Clase actualizada");
+  };
+  
+  const deleteCourseOffering = (id: string) => {
+      setCourseOfferings(prev => prev.filter(o => o.id !== id));
+      notify("Clase eliminada", "error");
+  };
+
+  const updateOfferingSession = (offeringId: string, sessionId: string, newDate: string) => {
+      setCourseOfferings(prev => prev.map(o => {
+          if(o.id !== offeringId) return o;
+          const newSessions = o.sessions.map(s => s.id === sessionId ? { ...s, date: newDate } : s);
+          return { ...o, sessions: newSessions };
+      }));
+      notify("Fecha de sesión actualizada");
+  };
+
   const enrollEpmiStudent = (memberId: string) => {
     if (currentUser.role !== 'PASTOR_PRINCIPAL') {
-        notify('Solo el Pastor Principal puede autorizar ingreso a EPMI', 'error');
+        notify('Solo el Pastor Cobertura puede autorizar ingreso a EPMI', 'error');
         return;
     }
     if (epmiEnrollments.some(e => e.memberId === memberId && e.status === 'ACTIVO')) {
@@ -642,6 +720,7 @@ const App: React.FC = () => {
   const value: GlobalState = {
     isAuthenticated, login, logout,
     currentUser, setCurrentUser,
+    systemUsers, addSystemUser, deleteSystemUser, // NEW
     notifications, markNotificationRead,
     anexos, addAnexo, updateAnexo, deleteAnexo,
     teachingHouses, addTeachingHouse, updateTeachingHouse, deleteTeachingHouse,
@@ -655,6 +734,7 @@ const App: React.FC = () => {
     monthlyReports, addMonthlyReport, updateMonthlyReport,
     courses, addCourse, updateCourse, deleteCourse,
     enrollStudentInCourse, unenrollStudentFromCourse, addCourseMaterial, requestCourseEnrollment, approveCourseEnrollment,
+    courseOfferings, openCourseOffering, updateCourseOffering, deleteCourseOffering, updateOfferingSession, // NEW
     epmiEnrollments, enrollEpmiStudent, updateEpmiStudent,
     trips, addTrip, updateTrip, markTripAttendance,
     history, addHistoryNote,

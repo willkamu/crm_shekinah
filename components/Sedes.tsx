@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App.tsx';
 import { Anexo, SpiritualStatus, Member, TeachingHouse, EventType } from '../types';
@@ -39,6 +40,8 @@ const Sedes: React.FC = () => {
   const [addMemberMode, setAddMemberMode] = useState<'SEARCH' | 'CREATE'>('SEARCH'); // Default to Search to prevent duplicates
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberPhone, setNewMemberPhone] = useState('');
+  const [newMemberSex, setNewMemberSex] = useState<'M' | 'F'>('M');
+  const [newMemberCargo, setNewMemberCargo] = useState('Miembro'); // New
   const [memberSearchTerm, setMemberSearchTerm] = useState('');
 
   // ASSIGN MEMBER/STUDENT STATE
@@ -155,8 +158,10 @@ const Sedes: React.FC = () => {
           id: `MEM-${Date.now()}`,
           nombres: newMemberName,
           telefono: newMemberPhone,
+          sex: newMemberSex,
           anexoId: selectedAnexoId,
           estatus: SpiritualStatus.NEW,
+          cargo: newMemberCargo as any,
           attendance_level: 'AMARILLO', 
           fidelity_level: 'VERDE',
           service_level: 'ROJO',
@@ -171,6 +176,7 @@ const Sedes: React.FC = () => {
       setIsAddMemberOpen(false);
       setNewMemberName('');
       setNewMemberPhone('');
+      setNewMemberSex('M');
   };
 
   const handleTransferMember = (memberId: string) => {
@@ -606,6 +612,9 @@ const Sedes: React.FC = () => {
                             onClick={() => {
                                 setAddMemberMode('SEARCH'); // Default to search first
                                 setIsAddMemberOpen(true);
+                                setNewMemberName('');
+                                setNewMemberPhone('');
+                                setNewMemberSex('M');
                             }} 
                             className="bg-slate-800 text-white px-4 py-2.5 rounded-xl hover:bg-black transition-colors shadow-sm flex items-center gap-2 text-sm font-bold"
                         >
@@ -705,324 +714,40 @@ const Sedes: React.FC = () => {
           {isCreateOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm p-4 animate-fadeIn">
                   <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 border border-white/50 relative">
-                      <button onClick={() => setIsCreateOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100"><X className="w-5 h-5 text-slate-400"/></button>
+                      <button onClick={() => setIsCreateOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-5 h-5"/></button>
                       <h3 className="text-xl font-bold text-slate-800 mb-6">Nueva Sede</h3>
                       <form onSubmit={handleCreateAnexo} className="space-y-4">
-                          <input className="w-full p-3 bg-slate-50 rounded-xl border border-slate-100 font-bold" value={newAnexoName} onChange={e => setNewAnexoName(e.target.value)} placeholder="Nombre" autoFocus />
-                          <select className="w-full p-3 bg-slate-50 rounded-xl border border-slate-100" value={newAnexoType} onChange={e => setNewAnexoType(e.target.value as any)}>
-                              <option value="LIMA">Lima</option>
-                              <option value="PROVINCIA">Provincia</option>
-                              <option value="INTERNACIONAL">Internacional</option>
-                          </select>
-                          <input className="w-full p-3 bg-slate-50 rounded-xl border border-slate-100" value={newAnexoUbicacion} onChange={e => setNewAnexoUbicacion(e.target.value)} placeholder="Ubicación" />
-                          <button type="submit" className="w-full py-4 bg-brand-blue text-white rounded-2xl font-bold">Crear Sede</button>
-                      </form>
-                  </div>
-              </div>
-          )}
-
-          {/* CREATE HOUSE MODAL */}
-          {isCreateHouseOpen && (
-              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
-                  <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50">
-                      <button onClick={() => setIsCreateHouseOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-5 h-5"/></button>
-                      <h3 className="text-xl font-bold text-slate-800 mb-6">Nueva Casa</h3>
-                      <form onSubmit={handleCreateHouse} className="space-y-4">
-                          <input placeholder="Nombre Casa" value={newHouseName} onChange={e => setNewHouseName(e.target.value)} className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 font-bold" />
-                          <input placeholder="Día de Reunión" value={newHouseDay} onChange={e => setNewHouseDay(e.target.value)} className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 font-medium" />
-                          
-                          {isCasasView && (
-                              <select 
-                                value={newHouseAnexoId} 
-                                onChange={e => {
-                                    setNewHouseAnexoId(e.target.value);
-                                    setNewHouseMaestroId(''); // Reset maestro when annex changes
-                                }}
-                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 font-medium"
-                              >
-                                  <option value="">-- Seleccionar Sede --</option>
-                                  {anexos.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
-                              </select>
-                          )}
-
-                          {/* Show Maestro select if Anexo is selected (either globally or implicitly) */}
-                          {(isCasasView ? newHouseAnexoId : selectedAnexoId) && (
-                              <select 
-                                value={newHouseMaestroId} 
-                                onChange={e => setNewHouseMaestroId(e.target.value)}
-                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 font-medium"
-                              >
-                                  <option value="">-- Seleccionar Maestro --</option>
-                                  {getPotentialTeachers(isCasasView ? newHouseAnexoId : selectedAnexoId!).map(m => (
-                                      <option key={m.id} value={m.id}>{m.nombres}</option>
-                                  ))}
-                              </select>
-                          )}
-
-                          <button type="submit" disabled={!newHouseName || (!isCasasView && !selectedAnexoId) || (isCasasView && !newHouseAnexoId) || !newHouseMaestroId} className="w-full py-4 bg-orange-500 text-white rounded-2xl font-bold shadow-glow mt-2 disabled:opacity-50">Crear Casa</button>
-                      </form>
-                  </div>
-              </div>
-          )}
-
-          {/* EDIT HOUSE MODAL */}
-          {editingHouse && (
-              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
-                  <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50">
-                      <button onClick={() => setEditingHouse(null)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100"><X className="w-5 h-5 text-slate-400"/></button>
-                      <h3 className="text-xl font-bold text-slate-800 mb-6">Editar Casa</h3>
-                      <form onSubmit={handleUpdateHouse} className="space-y-4">
                           <div>
                               <label className="text-xs font-bold text-slate-400 uppercase ml-1">Nombre</label>
                               <input 
-                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-100 font-bold" 
-                                value={editingHouse.nombre} 
-                                onChange={e => setEditingHouse({...editingHouse, nombre: e.target.value})} 
+                                value={newAnexoName}
+                                onChange={e => setNewAnexoName(e.target.value)}
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-bold text-slate-700" 
+                                autoFocus
                               />
                           </div>
                           <div>
-                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Día/Horario</label>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Ubicación</label>
                               <input 
-                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-100 font-medium" 
-                                value={editingHouse.diaReunion} 
-                                onChange={e => setEditingHouse({...editingHouse, diaReunion: e.target.value})} 
+                                value={newAnexoUbicacion}
+                                onChange={e => setNewAnexoUbicacion(e.target.value)}
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-medium text-slate-700" 
                               />
                           </div>
                           <div>
-                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Maestro</label>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Tipo</label>
                               <select 
-                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-100 font-medium text-slate-700"
-                                value={editingHouse.maestroId}
-                                onChange={e => setEditingHouse({...editingHouse, maestroId: e.target.value})}
+                                value={newAnexoType}
+                                onChange={e => setNewAnexoType(e.target.value as any)}
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-medium text-slate-700"
                               >
-                                  {getPotentialTeachers(editingHouse.anexoId).map(m => (
-                                      <option key={m.id} value={m.id}>{m.nombres}</option>
-                                  ))}
+                                  <option value="LIMA">Lima</option>
+                                  <option value="PROVINCIA">Provincia</option>
+                                  <option value="INTERNACIONAL">Internacional</option>
                               </select>
                           </div>
-                          <button type="submit" className="w-full py-4 bg-orange-500 text-white rounded-2xl font-bold shadow-glow mt-2">Guardar Cambios</button>
+                          <button type="submit" className="w-full py-4 bg-brand-blue text-white rounded-2xl font-bold shadow-glow mt-2 hover:bg-brand-dark transition-colors">Crear Sede</button>
                       </form>
-                  </div>
-              </div>
-          )}
-
-          {/* DELETE HOUSE CONFIRMATION */}
-          {houseToDelete && (
-              <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
-                  <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50 text-center">
-                      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
-                          <AlertTriangle className="w-8 h-8" />
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-800 mb-2">¿Eliminar Casa?</h3>
-                      <p className="text-sm text-slate-500 mb-6">
-                          Esta acción eliminará la casa de enseñanza. Los alumnos quedarán sin asignar.
-                      </p>
-                      <div className="flex gap-3">
-                          <button onClick={() => setHouseToDelete(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">Cancelar</button>
-                          <button onClick={confirmDeleteHouse} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg">Eliminar</button>
-                      </div>
-                  </div>
-              </div>
-          )}
-
-          {/* EDIT ANEXO MODAL */}
-          {editingAnexo && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
-                  <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50">
-                      <button onClick={() => setEditingAnexo(null)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-5 h-5"/></button>
-                      <h3 className="text-xl font-bold text-slate-800 mb-6">Editar Sede</h3>
-                      <form onSubmit={handleSaveAnexo} className="space-y-4">
-                          <div>
-                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Líder</label>
-                              <input 
-                                value={editingAnexo.liderNombre}
-                                onChange={e => setEditingAnexo({...editingAnexo, liderNombre: e.target.value})}
-                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-bold text-slate-700" 
-                              />
-                          </div>
-                          <div>
-                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Teléfono</label>
-                              <input 
-                                value={editingAnexo.telefono}
-                                onChange={e => setEditingAnexo({...editingAnexo, telefono: e.target.value})}
-                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-medium text-slate-700" 
-                              />
-                          </div>
-                          <div>
-                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Horario</label>
-                              <input 
-                                value={editingAnexo.horario}
-                                onChange={e => setEditingAnexo({...editingAnexo, horario: e.target.value})}
-                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-medium text-slate-700" 
-                              />
-                          </div>
-                          <button type="submit" className="w-full py-4 bg-brand-blue text-white rounded-2xl font-bold shadow-glow mt-2 hover:bg-brand-dark transition-colors">Guardar Cambios</button>
-                      </form>
-                  </div>
-              </div>
-          )}
-
-          {/* DELETE ANEXO CONFIRMATION */}
-          {anexoToDelete && (
-              <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
-                  <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50 text-center">
-                      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
-                          <AlertTriangle className="w-8 h-8" />
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-800 mb-2">¿Eliminar Sede?</h3>
-                      <p className="text-sm text-slate-500 mb-6">
-                          Esta acción eliminará la sede y desvinculará a todos sus miembros y casas. Es irreversible.
-                      </p>
-                      <div className="flex gap-3">
-                          <button onClick={() => setAnexoToDelete(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">Cancelar</button>
-                          <button onClick={confirmDeleteAnexo} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg">Eliminar</button>
-                      </div>
-                  </div>
-              </div>
-          )}
-
-          {/* UNIFIED ADD MEMBER MODAL (SEARCH OR CREATE) */}
-          {isAddMemberOpen && selectedAnexo && (
-              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
-                  <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 relative h-[80vh] flex flex-col border border-white/50">
-                      <button onClick={() => setIsAddMemberOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100"><X className="w-5 h-5 text-slate-400"/></button>
-                      <h3 className="text-xl font-bold text-slate-800 mb-2">Agregar Miembro</h3>
-                      <p className="text-xs text-slate-500 mb-6">Añadir persona a la sede: <span className="font-bold text-brand-blue">{selectedAnexo.nombre}</span></p>
-                      
-                      {/* TABS FOR MODE */}
-                      <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
-                          <button 
-                            onClick={() => setAddMemberMode('SEARCH')}
-                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${addMemberMode === 'SEARCH' ? 'bg-white text-brand-blue shadow-sm' : 'text-slate-400'}`}
-                          >
-                              Buscar Existente
-                          </button>
-                          <button 
-                            onClick={() => setAddMemberMode('CREATE')}
-                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${addMemberMode === 'CREATE' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}
-                          >
-                              Nuevo Registro
-                          </button>
-                      </div>
-
-                      {/* MODE: SEARCH (TRANSFER) */}
-                      {addMemberMode === 'SEARCH' && (
-                          <div className="flex-1 flex flex-col">
-                              <div className="relative mb-4">
-                                  <input 
-                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-brand-light font-medium text-sm"
-                                    placeholder="Buscar en TODA la iglesia..."
-                                    value={memberSearchTerm}
-                                    onChange={e => setMemberSearchTerm(e.target.value)}
-                                    autoFocus
-                                  />
-                                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
-                              </div>
-
-                              <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                                  {members
-                                    .filter(m => m.anexoId !== selectedAnexoId && m.nombres.toLowerCase().includes(memberSearchTerm.toLowerCase()) && memberSearchTerm.length > 2)
-                                    .map(m => (
-                                      <div key={m.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-brand-soft transition-colors cursor-pointer group">
-                                          <div className="flex items-center gap-3">
-                                              <img src={m.photoUrl} className="w-8 h-8 rounded-full bg-slate-200 object-cover" />
-                                              <div>
-                                                  <p className="font-bold text-sm text-slate-700">{m.nombres}</p>
-                                                  <p className="text-[10px] text-slate-400">Actual: {anexos.find(a => a.id === m.anexoId)?.nombre}</p>
-                                              </div>
-                                          </div>
-                                          <button 
-                                            onClick={() => handleTransferMember(m.id)}
-                                            className="text-[10px] bg-brand-blue text-white px-2 py-1 rounded-lg font-bold hover:bg-brand-dark"
-                                          >
-                                              Jalar
-                                          </button>
-                                      </div>
-                                  ))}
-                                  {memberSearchTerm.length <= 2 && (
-                                      <div className="text-center py-8 text-slate-400 text-xs">
-                                          <Search className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                                          <p>Escribe el nombre para buscar...</p>
-                                      </div>
-                                  )}
-                              </div>
-                          </div>
-                      )}
-
-                      {/* MODE: CREATE NEW */}
-                      {addMemberMode === 'CREATE' && (
-                          <div className="flex-1 flex flex-col">
-                              <form onSubmit={handleCreateMemberLocal} className="space-y-4">
-                                  <div className="bg-amber-50 p-3 rounded-xl text-xs text-amber-700 mb-2 border border-amber-100">
-                                      <AlertTriangle className="w-4 h-4 inline mr-1 mb-0.5" />
-                                      Solo usa esta opción para <strong>nuevos convertidos</strong>. Si la persona ya asistía antes, usa la pestaña "Buscar Existente".
-                                  </div>
-                                  <input 
-                                    className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 font-bold" 
-                                    value={newMemberName} 
-                                    onChange={e => setNewMemberName(e.target.value)} 
-                                    placeholder="Nombre Completo" 
-                                    autoFocus 
-                                  />
-                                  <input 
-                                    className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 font-medium" 
-                                    value={newMemberPhone} 
-                                    onChange={e => setNewMemberPhone(e.target.value)} 
-                                    placeholder="Teléfono" 
-                                  />
-                                  <button type="submit" className="w-full py-4 bg-slate-800 text-white rounded-2xl font-bold shadow-glow mt-4">Guardar Nuevo</button>
-                              </form>
-                          </div>
-                      )}
-                  </div>
-              </div>
-          )}
-
-          {/* ASSIGN STUDENT TO HOUSE MODAL */}
-          {isAssignStudentOpen && targetHouseId && (
-              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
-                  <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 relative h-[80vh] flex flex-col border border-white/50">
-                      <button onClick={() => setIsAssignStudentOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100"><X className="w-5 h-5 text-slate-400"/></button>
-                      <h3 className="text-xl font-bold text-slate-800 mb-2">Asignar Alumno</h3>
-                      <p className="text-xs text-slate-500 mb-6">A la casa: <span className="font-bold text-orange-500">{teachingHouses.find(h => h.id === targetHouseId)?.nombre}</span></p>
-                      
-                      {/* Search */}
-                      <div className="relative mb-4">
-                          <input 
-                            className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-orange-200 font-medium text-sm"
-                            placeholder="Buscar alumno sin casa..."
-                            value={studentSearchTerm}
-                            onChange={e => setStudentSearchTerm(e.target.value)}
-                            autoFocus
-                          />
-                          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
-                      </div>
-
-                      {/* Filtered List */}
-                      <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                          {getPotentialStudents(targetHouseId)
-                            .filter(m => m.nombres.toLowerCase().includes(studentSearchTerm.toLowerCase()))
-                            .map(m => (
-                              <div key={m.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-orange-50 transition-colors cursor-pointer group">
-                                  <div className="flex items-center gap-3">
-                                      <img src={m.photoUrl} className="w-8 h-8 rounded-full bg-slate-200 object-cover" />
-                                      <div>
-                                          <p className="font-bold text-sm text-slate-700">{m.nombres}</p>
-                                          <p className="text-[10px] text-slate-400">{m.estatus}</p>
-                                      </div>
-                                  </div>
-                                  <button 
-                                    onClick={() => handleAssignStudent(m.id)}
-                                    className="text-[10px] bg-orange-500 text-white px-2 py-1 rounded-lg font-bold hover:bg-orange-600"
-                                  >
-                                      <Plus className="w-3 h-3 inline mr-1" /> Asignar
-                                  </button>
-                              </div>
-                          ))}
-                          {getPotentialStudents(targetHouseId).length === 0 && (
-                              <p className="text-center text-xs text-slate-400 py-10">No hay miembros disponibles en esta sede sin casa asignada.</p>
-                          )}
-                      </div>
                   </div>
               </div>
           )}

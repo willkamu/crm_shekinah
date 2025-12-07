@@ -1,17 +1,26 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../App.tsx';
-import { User, Lock, Bell, LogOut, Activity, X, Save, Camera, Search, RefreshCw, AlertTriangle, Play, Download, Upload, Database } from 'lucide-react';
+import { User, Lock, Bell, LogOut, Activity, X, Save, Camera, Search, RefreshCw, AlertTriangle, Play, Download, Upload, Database, UserPlus, Trash2, ShieldAlert } from 'lucide-react';
+import { SystemUser, UserRole } from '../types';
 
 const Settings: React.FC = () => {
-  const { currentUser, setCurrentUser, auditLogs, notify, runNightlyProcess, resetSystem } = useApp();
+  const { currentUser, setCurrentUser, auditLogs, notify, runNightlyProcess, resetSystem, systemUsers, addSystemUser, deleteSystemUser, members, anexos } = useApp();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showUserModal, setShowUserModal] = useState(false);
   const [auditFilter, setAuditFilter] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Storage usage
   const [storageUsage, setStorageUsage] = useState(0);
+
+  // New User Form State
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserRole, setNewUserRole] = useState<UserRole>('LIDER_ANEXO');
+  const [newUserMemberId, setNewUserMemberId] = useState('');
+  const [newUserAnexoId, setNewUserAnexoId] = useState('');
 
   useEffect(() => {
       const calculateStorage = () => {
@@ -44,6 +53,7 @@ const Settings: React.FC = () => {
           trips: localStorage.getItem('shekinah_trips'),
           history: localStorage.getItem('shekinah_history'),
           reports: localStorage.getItem('shekinah_reports'),
+          users: localStorage.getItem('shekinah_users'),
           timestamp: new Date().toISOString()
       };
 
@@ -78,6 +88,7 @@ const Settings: React.FC = () => {
                       localStorage.setItem('shekinah_trips', data.trips || '[]');
                       localStorage.setItem('shekinah_history', data.history || '[]');
                       localStorage.setItem('shekinah_reports', data.reports || '[]');
+                      localStorage.setItem('shekinah_users', data.users || '[]');
                       
                       notify("Sistema restaurado. Recargando...", "success");
                       setTimeout(() => window.location.reload(), 1500);
@@ -90,6 +101,34 @@ const Settings: React.FC = () => {
           }
       };
       reader.readAsText(file);
+  };
+
+  const handleCreateUser = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newUserEmail || !newUserPassword || !newUserMemberId) {
+          notify("Complete todos los campos", "error");
+          return;
+      }
+
+      // Find member name
+      const member = members.find(m => m.id === newUserMemberId);
+      
+      const newUser: SystemUser = {
+          id: `USR-${Date.now()}`,
+          email: newUserEmail,
+          password: newUserPassword,
+          role: newUserRole,
+          memberId: newUserMemberId,
+          anexoId: newUserAnexoId || 'ALL', // Or specific if Leader
+          name: member ? member.nombres : 'Usuario Sistema'
+      };
+
+      addSystemUser(newUser);
+      setShowUserModal(false);
+      setNewUserEmail('');
+      setNewUserPassword('');
+      setNewUserMemberId('');
+      notify("Nuevo usuario creado exitosamente", "success");
   };
 
   return (
@@ -153,6 +192,58 @@ const Settings: React.FC = () => {
                   </div>
               </div>
           </div>
+
+          {/* USER MANAGEMENT (PDF 8.2 - Pastor Only) */}
+          {currentUser.role === 'PASTOR_PRINCIPAL' ? (
+              <div className="border-t border-slate-100 p-8 bg-indigo-50/30">
+                  <div className="flex justify-between items-center mb-6">
+                      <div>
+                          <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                              <UserPlus className="w-4 h-4 text-indigo-500" /> Usuarios del Sistema
+                          </h4>
+                          <p className="text-[10px] text-slate-500 mt-1">Gestión de accesos para líderes y staff.</p>
+                      </div>
+                      <button 
+                        onClick={() => setShowUserModal(true)}
+                        className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-700 shadow-sm"
+                      >
+                          + Nuevo Usuario
+                      </button>
+                  </div>
+
+                  <div className="space-y-3">
+                      {systemUsers.map(user => (
+                          <div key={user.id} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                              <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                                      {user.name.charAt(0)}
+                                  </div>
+                                  <div>
+                                      <p className="font-bold text-slate-700 text-xs">{user.name}</p>
+                                      <p className="text-[10px] text-slate-400">{user.email} • <span className="text-indigo-500 font-bold">{user.role}</span></p>
+                                  </div>
+                              </div>
+                              {user.role !== 'PASTOR_PRINCIPAL' && (
+                                  <button 
+                                    onClick={() => deleteSystemUser(user.id)}
+                                    className="text-slate-300 hover:text-red-500 transition-colors p-2"
+                                    title="Eliminar Acceso"
+                                  >
+                                      <Trash2 className="w-4 h-4" />
+                                  </button>
+                              )}
+                          </div>
+                      ))}
+                      {systemUsers.length === 0 && <p className="text-center text-xs text-slate-400 italic">No hay usuarios adicionales.</p>}
+                  </div>
+              </div>
+          ) : (
+              <div className="border-t border-slate-100 p-6 bg-slate-50 text-center">
+                  <p className="text-xs text-slate-400 flex items-center justify-center gap-2">
+                      <ShieldAlert className="w-4 h-4"/> Gestión de usuarios restringida al Pastor Principal.
+                  </p>
+              </div>
+          )}
 
           {/* BACKUP & RESTORE (DATA SAFETY) */}
           <div className="border-t border-slate-100 p-8 bg-sky-50/30">
@@ -284,12 +375,87 @@ const Settings: React.FC = () => {
           )}
 
           <div className="p-8 bg-slate-50 border-t border-slate-100">
-              <button className="w-full py-4 text-red-500 font-bold hover:bg-red-50 rounded-xl transition-colors flex justify-center items-center gap-2">
+              <button onClick={() => {
+                  window.location.href = '#/login';
+                  window.location.reload();
+              }} className="w-full py-4 text-red-500 font-bold hover:bg-red-50 rounded-xl transition-colors flex justify-center items-center gap-2">
                   <LogOut className="w-5 h-5" /> Cerrar Sesión
               </button>
               <p className="text-center text-[10px] text-slate-400 mt-4 font-bold tracking-widest uppercase">Shekinah ChMS v1.0</p>
           </div>
       </div>
+
+      {/* CREATE USER MODAL */}
+      {showUserModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm p-4 animate-fadeIn">
+              <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 relative">
+                  <button onClick={() => setShowUserModal(false)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100"><X className="w-5 h-5 text-slate-400"/></button>
+                  <h3 className="text-xl font-bold text-slate-800 mb-6">Nuevo Usuario del Sistema</h3>
+                  <form onSubmit={handleCreateUser} className="space-y-4">
+                      <div>
+                          <label className="text-xs font-bold text-slate-400 uppercase ml-1">Correo Electrónico</label>
+                          <input 
+                            type="email"
+                            className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-bold" 
+                            value={newUserEmail}
+                            onChange={e => setNewUserEmail(e.target.value)}
+                            required
+                          />
+                      </div>
+                      <div>
+                          <label className="text-xs font-bold text-slate-400 uppercase ml-1">Contraseña Temporal</label>
+                          <input 
+                            type="text"
+                            className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light" 
+                            value={newUserPassword}
+                            onChange={e => setNewUserPassword(e.target.value)}
+                            required
+                          />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                          <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Rol</label>
+                              <select 
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light text-sm"
+                                value={newUserRole}
+                                onChange={e => setNewUserRole(e.target.value as UserRole)}
+                              >
+                                  <option value="MINISTRO">Ministro</option>
+                                  <option value="LIDER_ANEXO">Líder de Anexo</option>
+                                  <option value="MAESTRO_CASA">Maestro</option>
+                                  <option value="SECRETARIA_CASA">Secretaria Casa</option>
+                                  <option value="SECRETARIA_ANEXO">Secretaria Anexo</option>
+                              </select>
+                          </div>
+                          <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Alcance (Anexo)</label>
+                              <select 
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light text-sm"
+                                value={newUserAnexoId}
+                                onChange={e => setNewUserAnexoId(e.target.value)}
+                              >
+                                  <option value="">-- Global --</option>
+                                  {anexos.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                              </select>
+                          </div>
+                      </div>
+                      <div>
+                          <label className="text-xs font-bold text-slate-400 uppercase ml-1">Vincular Miembro</label>
+                          <select 
+                            className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light text-sm font-bold"
+                            value={newUserMemberId}
+                            onChange={e => setNewUserMemberId(e.target.value)}
+                            required
+                          >
+                              <option value="">-- Seleccionar Persona --</option>
+                              {members.map(m => <option key={m.id} value={m.id}>{m.nombres}</option>)}
+                          </select>
+                      </div>
+                      <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-glow mt-2">Crear Acceso</button>
+                  </form>
+              </div>
+          </div>
+      )}
 
       {/* PASSWORD CHANGE MODAL */}
       {showPasswordModal && (

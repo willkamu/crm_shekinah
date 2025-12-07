@@ -1,9 +1,10 @@
 
 import React, { useState, useRef } from 'react';
 import { useApp } from '../App.tsx';
-import { Member, SpiritualStatus, IndicatorLevel, Course } from '../types';
-import { Search, Plus, X, Phone, MapPin, Calendar, BookOpen, Shield, Heart, Edit3, Camera, User, Award, CheckCircle2, AlertTriangle, AlertCircle, Check, Plane, StickyNote, Sparkles, Loader2, Save, MessageCircle, Trash2, RefreshCw, Printer, UploadCloud, Image as ImageIcon, Wrench } from 'lucide-react';
+import { Member, SpiritualStatus, IndicatorLevel, Course, EcclesiasticalRole } from '../types';
+import { Search, Plus, X, Phone, MapPin, Calendar, BookOpen, Shield, Heart, Edit3, Camera, User, Award, CheckCircle2, AlertTriangle, AlertCircle, Check, Plane, StickyNote, Sparkles, Loader2, Save, MessageCircle, Trash2, RefreshCw, Printer, UploadCloud, Image as ImageIcon, Wrench, Briefcase } from 'lucide-react';
 import { generatePastoralInsight } from '../services/geminiService';
+import { Navigate } from 'react-router-dom';
 
 const Members: React.FC = () => {
   const { members, anexos, updateMember, addMember, currentUser, courses, teachingHouses, updateMemberPhoto, epmiEnrollments, trips, history, addHistoryNote, sendWhatsApp, deleteMember, notify } = useApp();
@@ -37,6 +38,7 @@ const Members: React.FC = () => {
   // Form States
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberPhone, setNewMemberPhone] = useState('');
+  const [newMemberSex, setNewMemberSex] = useState<'M' | 'F'>('M'); // Default Male
   const [newMemberAnexo, setNewMemberAnexo] = useState('');
   
   // Photo Upload State
@@ -46,6 +48,12 @@ const Members: React.FC = () => {
 
   // Note State
   const [newNoteContent, setNewNoteContent] = useState('');
+
+  // --- SECURITY: STRICT REDIRECT FOR MEMBERS (PDF 9.11 & 14.3) ---
+  // A member should NEVER see the directory list.
+  if (currentUser.role === 'MIEMBRO') {
+      return <Navigate to="/profile" replace />;
+  }
 
   // --- LOGIC: Visibility based on Role (PDF Part 8.1.4) ---
   const canEdit = ['PASTOR_PRINCIPAL', 'MINISTRO', 'LIDER_ANEXO'].includes(currentUser.role);
@@ -92,6 +100,15 @@ const Members: React.FC = () => {
       );
   };
 
+  const getRolesByGender = (sex: 'M' | 'F'): EcclesiasticalRole[] => {
+      if (sex === 'F') {
+          // Specific Female Variants (No Ministra - Use Ministro as neutral)
+          return ['Pastora', 'Ministro', 'Diaconisa', 'Obrera', 'Líder', 'Evangelista', 'Predicadora', 'Maestra', 'Sierva', 'Miembro', 'Visitante'];
+      }
+      // Male / Default
+      return ['Pastor Cobertura', 'Ministro', 'Ministro Ordenado', 'Anciano', 'Diácono', 'Obrero', 'Líder', 'Evangelista', 'Predicador', 'Maestro', 'Siervo', 'Miembro', 'Visitante'];
+  };
+
   // Find EPMI status for selected member
   const epmiStatus = selectedMember ? epmiEnrollments.find(e => e.memberId === selectedMember.id && e.status === 'ACTIVO') : null;
 
@@ -130,8 +147,10 @@ const Members: React.FC = () => {
         id: `MEM-${Date.now()}`,
         nombres: newMemberName,
         telefono: newMemberPhone,
+        sex: newMemberSex,
         anexoId: anexoId,
         estatus: SpiritualStatus.NEW,
+        cargo: 'Miembro', // Default role
         attendance_level: 'AMARILLO', 
         fidelity_level: 'VERDE', // Default optimistic
         service_level: 'ROJO',
@@ -146,6 +165,7 @@ const Members: React.FC = () => {
     setIsCreateOpen(false);
     setNewMemberName('');
     setNewMemberPhone('');
+    setNewMemberSex('M');
   };
 
   const handleSaveData = () => {
@@ -306,6 +326,7 @@ const Members: React.FC = () => {
                 <img src={member.photoUrl} alt="" className="w-16 h-16 rounded-2xl bg-slate-50 object-cover shadow-sm" />
                 <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-slate-800 truncate text-lg">{member.nombres}</h4>
+                    <p className="text-xs text-brand-blue font-bold uppercase mb-1">{member.cargo || 'Miembro'}</p>
                     <p className="text-xs text-slate-400 font-medium truncate mb-2">{anexos.find(a => a.id === member.anexoId)?.nombre}</p>
                     {getStatusBadge(member.estatus)}
                 </div>
@@ -357,6 +378,9 @@ const Members: React.FC = () => {
                         </div>
                         <div className="text-center sm:text-left">
                             <h3 className="text-3xl font-extrabold tracking-tight mb-1">{selectedMember.nombres}</h3>
+                            <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
+                                <span className="text-sm font-bold text-brand-light uppercase tracking-wider bg-white/10 px-2 py-0.5 rounded">{selectedMember.cargo || 'Miembro'}</span>
+                            </div>
                             <div className="flex items-center justify-center sm:justify-start gap-2 mb-3 opacity-80">
                                 <span className="text-xs font-bold bg-white/10 px-2 py-1 rounded">ID: {selectedMember.id}</span>
                                 {selectedMember.candidate_epmi && <span className="text-xs font-bold bg-accent-gold/20 text-accent-gold px-2 py-1 rounded flex items-center gap-1"><Award className="w-3 h-3"/> Candidato EPMI</span>}
@@ -434,6 +458,7 @@ const Members: React.FC = () => {
                     <div className="hidden print:block space-y-6 text-slate-800">
                         <h2 className="text-xl font-bold border-b pb-2 mb-4">Reporte Pastoral</h2>
                         <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div><span className="font-bold">Cargo:</span> {selectedMember.cargo}</div>
                             <div><span className="font-bold">Teléfono:</span> {selectedMember.telefono}</div>
                             <div><span className="font-bold">Dirección:</span> {selectedMember.direccion}</div>
                             <div><span className="font-bold">Anexo:</span> {anexos.find(a => a.id === selectedMember.anexoId)?.nombre}</div>
@@ -445,10 +470,6 @@ const Members: React.FC = () => {
                             <h4 className="font-bold mb-2">Formación & Servicio</h4>
                             <p>{selectedMember.coursesCompletedIds.length} Cursos Básicos Completados</p>
                             <p>Ministerios: {selectedMember.ministryIds.length > 0 ? selectedMember.ministryIds.join(', ') : 'Ninguno'}</p>
-                        </div>
-                        <div className="border-t pt-4">
-                            <h4 className="font-bold mb-2">Habilidades</h4>
-                            <p>{selectedMember.habilidades?.join(', ') || 'Ninguna registrada'}</p>
                         </div>
                     </div>
 
@@ -511,7 +532,9 @@ const Members: React.FC = () => {
                                                     profesion: selectedMember.profesion,
                                                     habilidades: selectedMember.habilidades || [], 
                                                     anexoId: isPastor ? selectedMember.anexoId : undefined,
-                                                    teachingHouseId: selectedMember.teachingHouseId
+                                                    teachingHouseId: selectedMember.teachingHouseId,
+                                                    cargo: selectedMember.cargo,
+                                                    sex: selectedMember.sex || 'M'
                                                 });
                                                 setIsEditingData(true);
                                             }}
@@ -521,9 +544,87 @@ const Members: React.FC = () => {
                                         </button>
                                     )}
                                 </div>
+                                
+                                {/* LOCATION SECTION (MOVED UP FOR BETTER UX) */}
+                                <div className="bg-brand-soft/30 p-4 rounded-2xl border border-brand-light/30">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <span className="text-[10px] font-bold text-brand-blue uppercase">Anexo</span>
+                                            {isEditingData && isPastor ? (
+                                                <select 
+                                                    className="w-full bg-white mt-1 p-2 rounded border border-brand-blue/30 text-sm font-bold text-slate-700 outline-none"
+                                                    value={editFormData.anexoId || selectedMember.anexoId}
+                                                    onChange={e => setEditFormData({
+                                                        ...editFormData, 
+                                                        anexoId: e.target.value,
+                                                        teachingHouseId: '' // Clear house when annex changes
+                                                    })}
+                                                >
+                                                    {anexos.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                                                </select>
+                                            ) : (
+                                                <p className="font-bold text-slate-800 text-sm">{anexos.find(a => a.id === selectedMember.anexoId)?.nombre}</p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] font-bold text-orange-500 uppercase">Casa de Enseñanza</span>
+                                            {isEditingData && (canEdit || isPastor) ? (
+                                                <select
+                                                    className="w-full bg-white mt-1 p-2 rounded border border-orange-200 text-sm font-bold text-slate-700 outline-none"
+                                                    value={editFormData.teachingHouseId || ''}
+                                                    onChange={e => setEditFormData({...editFormData, teachingHouseId: e.target.value})}
+                                                >
+                                                    <option value="">Sin Asignar</option>
+                                                    {teachingHouses
+                                                        .filter(h => h.anexoId === (editFormData.anexoId || selectedMember.anexoId))
+                                                        .map(h => (
+                                                            <option key={h.id} value={h.id}>{h.nombre}</option>
+                                                        ))
+                                                    }
+                                                </select>
+                                            ) : (
+                                                <p className="font-bold text-slate-800 text-sm">
+                                                    {teachingHouses.find(h => h.id === selectedMember.teachingHouseId)?.nombre || 'Sin Asignar'}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="p-3 bg-slate-50 rounded-2xl">
-                                        <label className="text-[10px] text-slate-400 font-bold uppercase">Teléfono</label>
+                                        <label className="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Cargo Ministerial</label>
+                                        {isEditingData ? (
+                                            <div className="space-y-2">
+                                                <div className="flex gap-2 mb-1">
+                                                    <label className="flex items-center gap-1 cursor-pointer">
+                                                        <input type="radio" name="sexEdit" value="M" checked={editFormData.sex === 'M'} onChange={() => setEditFormData({...editFormData, sex: 'M'})} /> 
+                                                        <span className="text-xs">Masc.</span>
+                                                    </label>
+                                                    <label className="flex items-center gap-1 cursor-pointer">
+                                                        <input type="radio" name="sexEdit" value="F" checked={editFormData.sex === 'F'} onChange={() => setEditFormData({...editFormData, sex: 'F'})} />
+                                                        <span className="text-xs">Fem.</span>
+                                                    </label>
+                                                </div>
+                                                <select 
+                                                    className="w-full bg-white p-2 rounded-lg text-sm font-bold text-slate-700 border border-slate-200"
+                                                    value={editFormData.cargo || 'Miembro'}
+                                                    onChange={e => setEditFormData({...editFormData, cargo: e.target.value as any})}
+                                                >
+                                                    {getRolesByGender(editFormData.sex || 'M').map(role => (
+                                                        <option key={role} value={role}>{role}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                <Briefcase className="w-3 h-3 text-slate-400" />
+                                                <p className="font-bold text-slate-700">{selectedMember.cargo || 'Miembro'}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="p-3 bg-slate-50 rounded-2xl">
+                                        <label className="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Teléfono</label>
                                         {isEditingData ? (
                                             <input className="w-full bg-white p-2 rounded-lg text-sm font-bold text-slate-700 border border-slate-200" value={editFormData.telefono || ''} onChange={e => setEditFormData({...editFormData, telefono: e.target.value})} />
                                         ) : (
@@ -536,7 +637,7 @@ const Members: React.FC = () => {
                                         )}
                                     </div>
                                     <div className="p-3 bg-slate-50 rounded-2xl">
-                                        <label className="text-[10px] text-slate-400 font-bold uppercase">Dirección</label>
+                                        <label className="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Dirección</label>
                                         {isEditingData ? (
                                             <input className="w-full bg-white p-2 rounded-lg text-sm font-bold text-slate-700 border border-slate-200" value={editFormData.direccion || ''} onChange={e => setEditFormData({...editFormData, direccion: e.target.value})} />
                                         ) : (
@@ -544,7 +645,7 @@ const Members: React.FC = () => {
                                         )}
                                     </div>
                                     <div className="p-3 bg-slate-50 rounded-2xl">
-                                        <label className="text-[10px] text-slate-400 font-bold uppercase">Estado Civil</label>
+                                        <label className="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Estado Civil</label>
                                         {isEditingData ? (
                                             <select className="w-full bg-white p-2 rounded-lg text-sm font-bold text-slate-700 border border-slate-200" value={editFormData.estadoCivil || ''} onChange={e => setEditFormData({...editFormData, estadoCivil: e.target.value as any})}>
                                                 <option value="Soltero(a)">Soltero(a)</option>
@@ -557,62 +658,11 @@ const Members: React.FC = () => {
                                         )}
                                     </div>
                                     <div className="p-3 bg-slate-50 rounded-2xl">
-                                        <label className="text-[10px] text-slate-400 font-bold uppercase">Fecha Nac.</label>
+                                        <label className="text-[10px] text-slate-400 font-bold uppercase mb-1 block">Fecha Nac.</label>
                                         {isEditingData ? (
                                             <input type="date" className="w-full bg-white p-2 rounded-lg text-sm font-bold text-slate-700 border border-slate-200" value={editFormData.fechaNacimiento || ''} onChange={e => setEditFormData({...editFormData, fechaNacimiento: e.target.value})} />
                                         ) : (
                                             <p className="font-bold text-slate-700">{selectedMember.fechaNacimiento || '---'}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* LOCATION SECTION (MOVED UP FOR BETTER UX) */}
-                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
-                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                                    <MapPin className="w-4 h-4" /> Ubicación Eclesiástica
-                                </h4>
-                                <div className="flex items-center justify-between p-4 bg-brand-soft/30 rounded-2xl border border-brand-light/30">
-                                    <div className="w-full">
-                                        <span className="text-[10px] font-bold text-brand-blue uppercase">Anexo</span>
-                                        {isEditingData && isPastor ? (
-                                            <select 
-                                                className="w-full bg-white mt-1 p-2 rounded border border-brand-blue/30 text-sm font-bold text-slate-700 outline-none"
-                                                value={editFormData.anexoId || selectedMember.anexoId}
-                                                onChange={e => setEditFormData({
-                                                    ...editFormData, 
-                                                    anexoId: e.target.value,
-                                                    teachingHouseId: '' // Clear house when annex changes
-                                                })}
-                                            >
-                                                {anexos.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
-                                            </select>
-                                        ) : (
-                                            <p className="font-bold text-slate-800">{anexos.find(a => a.id === selectedMember.anexoId)?.nombre}</p>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="flex items-center justify-between p-4 bg-orange-50/50 rounded-2xl border border-orange-100">
-                                    <div className="w-full">
-                                        <span className="text-[10px] font-bold text-orange-500 uppercase">Casa de Enseñanza</span>
-                                        {isEditingData && (canEdit || isPastor) ? (
-                                            <select
-                                                className="w-full bg-white mt-1 p-2 rounded border border-orange-200 text-sm font-bold text-slate-700 outline-none"
-                                                value={editFormData.teachingHouseId || ''}
-                                                onChange={e => setEditFormData({...editFormData, teachingHouseId: e.target.value})}
-                                            >
-                                                <option value="">Sin Asignar</option>
-                                                {teachingHouses
-                                                    .filter(h => h.anexoId === (editFormData.anexoId || selectedMember.anexoId))
-                                                    .map(h => (
-                                                        <option key={h.id} value={h.id}>{h.nombre}</option>
-                                                    ))
-                                                }
-                                            </select>
-                                        ) : (
-                                            <p className="font-bold text-slate-800">
-                                                {teachingHouses.find(h => h.id === selectedMember.teachingHouseId)?.nombre || 'Sin Asignar'}
-                                            </p>
                                         )}
                                     </div>
                                 </div>
@@ -852,10 +902,24 @@ const Members: React.FC = () => {
                           <label className="text-xs font-bold text-slate-400 uppercase ml-1">Nombre Completo</label>
                           <input className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-bold text-slate-700" value={newMemberName} onChange={e => setNewMemberName(e.target.value)} placeholder="Ej. Juan Pérez" autoFocus />
                       </div>
-                      <div>
-                          <label className="text-xs font-bold text-slate-400 uppercase ml-1">Teléfono</label>
-                          <input className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-medium text-slate-700" value={newMemberPhone} onChange={e => setNewMemberPhone(e.target.value)} placeholder="+51 999..." />
+                      <div className="grid grid-cols-2 gap-4">
+                          <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Sexo</label>
+                              <select 
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-medium text-slate-700"
+                                value={newMemberSex}
+                                onChange={e => setNewMemberSex(e.target.value as 'M' | 'F')}
+                              >
+                                  <option value="M">Masculino</option>
+                                  <option value="F">Femenino</option>
+                              </select>
+                          </div>
+                          <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Teléfono</label>
+                              <input className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-medium text-slate-700" value={newMemberPhone} onChange={e => setNewMemberPhone(e.target.value)} placeholder="+51 999..." />
+                          </div>
                       </div>
+                      
                       {currentUser.role === 'PASTOR_PRINCIPAL' && (
                           <div>
                               <label className="text-xs font-bold text-slate-400 uppercase ml-1">Asignar Anexo</label>

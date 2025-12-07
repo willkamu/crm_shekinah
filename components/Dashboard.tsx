@@ -23,6 +23,7 @@ const Dashboard: React.FC = () => {
   const [editHouseName, setEditHouseName] = useState('');
 
   // --- SECURITY: REDIRECT MEMBERS TO PROFILE (PDF 12.6) ---
+  // If role is MIEMBRO, they should NEVER see the Admin Dashboard.
   if (currentUser.role === 'MIEMBRO') {
       return <Navigate to="/profile" replace />;
   }
