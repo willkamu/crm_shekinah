@@ -1,11 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../App.tsx';
-import { User, Lock, Bell, LogOut, Activity, X, Save, Camera, Search, RefreshCw, AlertTriangle, Play, Download, Upload, Database, UserPlus, Trash2, ShieldAlert } from 'lucide-react';
-import { SystemUser, UserRole } from '../types';
+import { User, Lock, Bell, LogOut, Activity, X, Save, Camera, Search, RefreshCw, AlertTriangle, Play, Download, Upload, Database, UserPlus, Trash2, ShieldAlert, UserCheck } from 'lucide-react';
+import { SystemUser, UserRole, Member, SpiritualStatus } from '../types';
 
 const Settings: React.FC = () => {
-  const { currentUser, setCurrentUser, auditLogs, notify, runNightlyProcess, resetSystem, systemUsers, addSystemUser, deleteSystemUser, members, anexos } = useApp();
+  const { currentUser, setCurrentUser, auditLogs, notify, runNightlyProcess, resetSystem, systemUsers, addSystemUser, deleteSystemUser, members, addMember, anexos } = useApp();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
@@ -19,8 +19,12 @@ const Settings: React.FC = () => {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<UserRole>('LIDER_ANEXO');
-  const [newUserMemberId, setNewUserMemberId] = useState('');
   const [newUserAnexoId, setNewUserAnexoId] = useState('');
+  
+  // Linking Logic
+  const [createProfileMode, setCreateProfileMode] = useState(false);
+  const [newUserMemberId, setNewUserMemberId] = useState(''); // If selecting existing
+  const [newProfileName, setNewProfileName] = useState(''); // If creating new
 
   useEffect(() => {
       const calculateStorage = () => {
@@ -105,30 +109,76 @@ const Settings: React.FC = () => {
 
   const handleCreateUser = (e: React.FormEvent) => {
       e.preventDefault();
-      if (!newUserEmail || !newUserPassword || !newUserMemberId) {
-          notify("Complete todos los campos", "error");
+      
+      // Basic Validation
+      if (!newUserEmail || !newUserPassword) {
+          notify("Correo y contraseña son obligatorios", "error");
           return;
       }
 
-      // Find member name
-      const member = members.find(m => m.id === newUserMemberId);
-      
+      let finalMemberId = newUserMemberId;
+      let finalMemberName = '';
+
+      // LOGIC: Create new member profile if mode is selected
+      if (createProfileMode) {
+          if (!newProfileName) {
+              notify("Debe ingresar el nombre del nuevo miembro", "error");
+              return;
+          }
+          
+          const newMemberId = `MEM-${Date.now()}`;
+          const newMember: Member = {
+              id: newMemberId,
+              nombres: newProfileName,
+              telefono: '',
+              sex: 'M',
+              anexoId: newUserAnexoId || 'ANX-01', // Default to Central if global
+              estatus: SpiritualStatus.STABLE, // Leaders usually start Stable
+              cargo: 'Líder',
+              attendance_level: 'VERDE',
+              fidelity_level: 'VERDE',
+              service_level: 'VERDE',
+              candidate_epmi: false,
+              completed_basicos: true, // Assume leaders have basics
+              coursesCompletedIds: [],
+              ministryIds: [],
+              photoUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${newProfileName}`
+          };
+          
+          addMember(newMember);
+          finalMemberId = newMemberId;
+          finalMemberName = newProfileName;
+      } else {
+          // Linking existing
+          if (!newUserMemberId) {
+              notify("Debe seleccionar un miembro existente para vincular", "error");
+              return;
+          }
+          const existingMember = members.find(m => m.id === newUserMemberId);
+          finalMemberName = existingMember ? existingMember.nombres : 'Usuario Sistema';
+      }
+
       const newUser: SystemUser = {
           id: `USR-${Date.now()}`,
           email: newUserEmail,
           password: newUserPassword,
           role: newUserRole,
-          memberId: newUserMemberId,
-          anexoId: newUserAnexoId || 'ALL', // Or specific if Leader
-          name: member ? member.nombres : 'Usuario Sistema'
+          memberId: finalMemberId,
+          anexoId: newUserAnexoId || 'ALL', 
+          name: finalMemberName
       };
 
       addSystemUser(newUser);
       setShowUserModal(false);
+      
+      // Reset Form
       setNewUserEmail('');
       setNewUserPassword('');
       setNewUserMemberId('');
-      notify("Nuevo usuario creado exitosamente", "success");
+      setNewProfileName('');
+      setCreateProfileMode(false);
+      
+      notify(createProfileMode ? "Usuario y Perfil de Miembro creados" : "Usuario creado y vinculado");
   };
 
   return (
@@ -220,7 +270,7 @@ const Settings: React.FC = () => {
                                   </div>
                                   <div>
                                       <p className="font-bold text-slate-700 text-xs">{user.name}</p>
-                                      <p className="text-[10px] text-slate-400">{user.email} • <span className="text-indigo-500 font-bold">{user.role}</span></p>
+                                      <p className="text-[10px] text-slate-400">{user.email} • <span className="text-indigo-500 font-bold">{user.role.replace('_', ' ')}</span></p>
                                   </div>
                               </div>
                               {user.role !== 'PASTOR_PRINCIPAL' && (
@@ -420,8 +470,10 @@ const Settings: React.FC = () => {
                                 value={newUserRole}
                                 onChange={e => setNewUserRole(e.target.value as UserRole)}
                               >
+                                  <option value="PASTOR_EJECUTIVO">Pastor Ejecutivo (Equipo)</option>
                                   <option value="MINISTRO">Ministro</option>
                                   <option value="LIDER_ANEXO">Líder de Anexo</option>
+                                  <option value="LIDER_INTERCESION">Líder de Intercesión</option>
                                   <option value="MAESTRO_CASA">Maestro</option>
                                   <option value="SECRETARIA_CASA">Secretaria Casa</option>
                                   <option value="SECRETARIA_ANEXO">Secretaria Anexo</option>
@@ -439,18 +491,43 @@ const Settings: React.FC = () => {
                               </select>
                           </div>
                       </div>
-                      <div>
-                          <label className="text-xs font-bold text-slate-400 uppercase ml-1">Vincular Miembro</label>
-                          <select 
-                            className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light text-sm font-bold"
-                            value={newUserMemberId}
-                            onChange={e => setNewUserMemberId(e.target.value)}
-                            required
-                          >
-                              <option value="">-- Seleccionar Persona --</option>
-                              {members.map(m => <option key={m.id} value={m.id}>{m.nombres}</option>)}
-                          </select>
+
+                      {/* --- PROFILE LINKING SECTION --- */}
+                      <div className="border-t border-slate-100 pt-4 mt-2">
+                          <label className="text-xs font-bold text-slate-400 uppercase ml-1 flex items-center justify-between mb-2">
+                              <span>Vincular Miembro</span>
+                              <button 
+                                type="button" 
+                                onClick={() => setCreateProfileMode(!createProfileMode)}
+                                className="text-brand-blue hover:underline"
+                              >
+                                  {createProfileMode ? 'Buscar Existente' : 'Crear Nuevo Perfil'}
+                              </button>
+                          </label>
+
+                          {createProfileMode ? (
+                              <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
+                                  <label className="text-[10px] font-bold text-blue-700 uppercase mb-1 block">Nombre del Nuevo Miembro</label>
+                                  <input 
+                                    className="w-full p-2 bg-white rounded-lg border border-blue-200 outline-none focus:ring-2 focus:ring-brand-light text-sm font-bold"
+                                    placeholder="Ej. Pastor Invitado"
+                                    value={newProfileName}
+                                    onChange={e => setNewProfileName(e.target.value)}
+                                  />
+                                  <p className="text-[10px] text-blue-500 mt-1 flex items-center gap-1"><UserCheck className="w-3 h-3"/> Se creará una ficha de miembro automática.</p>
+                              </div>
+                          ) : (
+                              <select 
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light text-sm font-bold"
+                                value={newUserMemberId}
+                                onChange={e => setNewUserMemberId(e.target.value)}
+                              >
+                                  <option value="">-- Seleccionar Persona --</option>
+                                  {members.map(m => <option key={m.id} value={m.id}>{m.nombres}</option>)}
+                              </select>
+                          )}
                       </div>
+
                       <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-glow mt-2">Crear Acceso</button>
                   </form>
               </div>

@@ -51,6 +51,9 @@ const Epmi: React.FC = () => {
   const serviceStudents = activeStudents.filter(e => e.cycle === 'SERVICIO');
   const graduatedStudents = epmiEnrollments.filter(e => e.cycle === 'GRADUADO');
 
+  // PERMISSION CHECK
+  const canGraduate = currentUser.role === 'PASTOR_PRINCIPAL' || currentUser.role === 'PASTOR_EJECUTIVO';
+
   const handleOpenGrading = (student: EpmiEnrollment) => {
       setSelectedStudent(student);
       setGradeCourseId('');
@@ -262,12 +265,14 @@ const Epmi: React.FC = () => {
                                         >
                                             Calificar
                                         </button>
-                                        <button 
-                                        onClick={() => handlePromoteClick(student)}
-                                        className="px-3 py-1.5 bg-emerald-50 text-emerald-600 font-bold text-xs rounded-lg hover:bg-emerald-100"
-                                        >
-                                            Promover
-                                        </button>
+                                        {canGraduate && (
+                                            <button 
+                                            onClick={() => handlePromoteClick(student)}
+                                            className="px-3 py-1.5 bg-emerald-50 text-emerald-600 font-bold text-xs rounded-lg hover:bg-emerald-100"
+                                            >
+                                                Promover
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             )
@@ -326,12 +331,14 @@ const Epmi: React.FC = () => {
                                 >
                                     Calificar
                                 </button>
-                                <button 
-                                    onClick={() => handlePromoteClick(student)}
-                                    className="flex-1 py-3 bg-emerald-50 text-emerald-600 font-bold rounded-xl text-xs hover:bg-emerald-100 transition-colors"
-                                >
-                                    {cycleType === 'EPMI_II' ? 'A Servicio' : 'Promover'}
-                                </button>
+                                {canGraduate && (
+                                    <button 
+                                        onClick={() => handlePromoteClick(student)}
+                                        className="flex-1 py-3 bg-emerald-50 text-emerald-600 font-bold rounded-xl text-xs hover:bg-emerald-100 transition-colors"
+                                    >
+                                        {cycleType === 'EPMI_II' ? 'A Servicio' : 'Promover'}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     );
@@ -522,7 +529,7 @@ const Epmi: React.FC = () => {
                                   </div>
                               </div>
 
-                              {currentUser.role === 'PASTOR_PRINCIPAL' && (
+                              {canGraduate && (
                                   <button 
                                     onClick={() => setGraduateStudent(student)}
                                     className="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-black transition-colors flex items-center justify-center gap-2"

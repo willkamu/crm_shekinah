@@ -52,6 +52,7 @@ export type IndicatorLevel = 'VERDE' | 'AMARILLO' | 'NARANJA' | 'ROJO';
 // Roles (System Access) - PDF Part 5.2
 export type UserRole = 
   | 'PASTOR_PRINCIPAL' 
+  | 'PASTOR_EJECUTIVO' // NEW: Equipo Pastoral / Mesa Directiva
   | 'MINISTRO' 
   | 'LIDER_ANEXO' 
   | 'LIDER_INTERCESION' // Added specific role

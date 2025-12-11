@@ -27,7 +27,7 @@ const Viajes: React.FC = () => {
   const [executionTrip, setExecutionTrip] = useState<MissionTrip | null>(null);
 
   // --- ROLES & PERMISSIONS LOGIC ---
-  const isPastor = currentUser.role === 'PASTOR_PRINCIPAL';
+  const isPastor = currentUser.role === 'PASTOR_PRINCIPAL' || currentUser.role === 'PASTOR_EJECUTIVO';
   const isMinistro = currentUser.role === 'MINISTRO'; 
   const isIntercessionLeader = currentUser.role === 'LIDER_INTERCESION';
   const isMember = currentUser.role === 'MIEMBRO';
@@ -138,41 +138,24 @@ const Viajes: React.FC = () => {
       }
   };
 
-  const getRoleIcon = (role: string) => {
-      switch(role) {
-          case 'INTERCESOR': return <Shield className="w-3 h-3" />;
-          case 'MUSICO': return <Music className="w-3 h-3" />;
-          case 'EVANGELISTA': return <Mic2 className="w-3 h-3" />;
-          default: return <Users className="w-3 h-3" />;
-      }
-  };
-
   // --- FILTER LOGIC (MANUAL RULES) ---
-  
-  // 1. Viewable Trips
   const visibleTrips = trips.filter(t => {
       if (isMember) {
-          // Members only see trips they are part of
           return t.participants.some(p => p.memberId === currentUser.memberId);
       }
-      // Leaders/Pastors see all planned trips
       return true; 
   });
 
-  // 2. Members available for Proposal
   const getFilteredMembersForProposal = () => {
       const currentTrip = trips.find(t => t.id === activeTripId);
       let candidateList = members;
 
+      // Filter: Intercession Leader only proposes members from THEIR group
       if (isIntercessionLeader && myIntercessionGroup) {
-           // Strict: Only propose from MY group
            candidateList = candidateList.filter(m => m.intercesionGroupId === myIntercessionGroup.id);
       } else if (isIntercessionLeader && !myIntercessionGroup) {
-           // Fallback if leader has no group assigned - should not happen with correct mock data
-           // but we allow seeing none
            candidateList = [];
       }
-      // Pastor/Minister sees everyone
 
       return candidateList.filter(m => 
           m.nombres.toLowerCase().includes(searchMember.toLowerCase()) &&
@@ -180,14 +163,13 @@ const Viajes: React.FC = () => {
       );
   };
 
-  // 3. Can Propose?
   const canPropose = (trip: MissionTrip) => {
       if (isAnnexLeader) return false; // Annex Leader CANNOT propose
       if (isPastor || isMinistro) return true;
       if (isIntercessionLeader) {
-          // Can only propose if this trip is assigned to THEIR group
-          // OR if logic allows general proposal, but Manual says Group Leader proposes for their group.
-          return trip.assignedGroupId === myIntercessionGroup?.id;
+          // Logic Updated: Any intercession leader can propose members to any trip, 
+          // they are just limited to proposing *their own* members (handled in getFilteredMembersForProposal)
+          return !!myIntercessionGroup;
       }
       return false;
   };
@@ -263,7 +245,16 @@ const Viajes: React.FC = () => {
               </div>
           )}
 
-          {visibleTrips.map(trip => (
+          {visibleTrips.map(trip => {
+              const pending = trip.participants.filter(p => p.status === 'PROPUESTO');
+              const approved = trip.participants.filter(p => p.status === 'APROBADO');
+              const rejected = trip.participants.filter(p => p.status === 'RECHAZADO');
+
+              // Logic to decide if current user can see pending requests for THIS trip
+              // Intercession Leaders should see pending requests so they can track their proposals
+              const canSeePending = isPastor || isMinistro || isIntercessionLeader;
+
+              return (
               <div key={trip.id} className="bg-white rounded-[2.5rem] p-6 shadow-card border border-slate-50 flex flex-col h-full relative overflow-hidden group">
                   {/* Status Badge */}
                   <div className={`absolute top-0 right-0 px-4 py-2 rounded-bl-2xl text-[10px] font-extrabold uppercase tracking-wider ${
@@ -293,60 +284,78 @@ const Viajes: React.FC = () => {
                        </span>
                   </div>
 
-                  {/* Participants List */}
-                  <div className="flex-1 bg-slate-50 rounded-2xl p-4 mb-4 overflow-y-auto max-h-60 custom-scrollbar">
-                      <div className="flex justify-between items-center mb-3">
-                          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Equipo Misionero</h4>
-                          <span className="text-xs font-bold bg-white px-2 py-1 rounded-md text-slate-500">{trip.participants.filter(p => p.status === 'APROBADO').length} Confirmados</span>
-                      </div>
+                  {/* Participants List - SPLIT */}
+                  <div className="flex-1 bg-slate-50 rounded-2xl p-4 mb-4 overflow-y-auto max-h-80 custom-scrollbar space-y-4">
                       
-                      <div className="space-y-2">
-                          {trip.participants.length === 0 && <p className="text-center text-xs text-slate-300 py-4 italic">Aún no hay participantes propuestos.</p>}
-                          
-                          {trip.participants.map((p, idx) => {
-                              const member = members.find(m => m.id === p.memberId);
-                              return (
-                                  <div key={idx} className="bg-white p-3 rounded-xl flex justify-between items-center shadow-sm">
-                                      <div className="flex items-center gap-3">
-                                          <img src={member?.photoUrl} className="w-8 h-8 rounded-full bg-slate-200" />
-                                          <div>
-                                              <p className="text-sm font-bold text-slate-700">{member?.nombres}</p>
-                                              <span className="text-[10px] font-bold bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded flex items-center gap-1 w-max">
-                                                  {getRoleIcon(p.role)} {p.role}
-                                              </span>
-                                          </div>
-                                      </div>
-                                      
-                                      {/* Status/Actions */}
-                                      <div className="flex items-center gap-2">
-                                          {p.status === 'PROPUESTO' && (isPastor || isMinistro) ? (
-                                              <>
-                                                  <button onClick={() => handleApproveParticipant(trip.id, p.memberId, true)} className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200" title="Aprobar"><Check className="w-3 h-3" /></button>
-                                                  <button onClick={() => handleApproveParticipant(trip.id, p.memberId, false)} className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" title="Rechazar"><X className="w-3 h-3" /></button>
-                                              </>
-                                          ) : (
-                                              <div className="flex flex-col items-end">
-                                                  <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${
-                                                      p.status === 'APROBADO' ? 'bg-emerald-50 text-emerald-500' : 
-                                                      p.status === 'RECHAZADO' ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-500'
-                                                  }`}>
-                                                      {p.status}
-                                                  </span>
-                                                  {p.attended && (
-                                                      <span className="text-[9px] text-sky-500 font-bold flex items-center gap-0.5 mt-0.5"><CheckSquare className="w-3 h-3" /> ASISTIÓ</span>
+                      {/* PENDING SECTION */}
+                      {canSeePending && pending.length > 0 && (
+                          <div className="bg-amber-50 rounded-xl p-3 border border-amber-200">
+                              <h4 className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3"/> Solicitudes Pendientes ({pending.length})
+                              </h4>
+                              <div className="space-y-2">
+                                  {pending.map((p, idx) => {
+                                      const member = members.find(m => m.id === p.memberId);
+                                      return (
+                                          <div key={`pend-${idx}`} className="bg-white p-2 rounded-lg flex justify-between items-center shadow-sm">
+                                              <div className="flex items-center gap-2">
+                                                  <img src={member?.photoUrl} className="w-6 h-6 rounded-full bg-slate-200" />
+                                                  <div>
+                                                      <p className="text-xs font-bold text-slate-700">{member?.nombres}</p>
+                                                      <span className="text-[9px] text-slate-400">{p.role}</span>
+                                                  </div>
+                                              </div>
+                                              <div className="flex gap-1">
+                                                  {(isPastor || isMinistro) ? (
+                                                      <>
+                                                          <button onClick={() => handleApproveParticipant(trip.id, p.memberId, true)} className="p-1 bg-emerald-100 text-emerald-600 rounded hover:bg-emerald-200"><Check className="w-3 h-3"/></button>
+                                                          <button onClick={() => handleApproveParticipant(trip.id, p.memberId, false)} className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200"><X className="w-3 h-3"/></button>
+                                                      </>
+                                                  ) : (
+                                                       <span className="text-[9px] font-bold text-amber-600 bg-white px-2 py-1 rounded border border-amber-100">
+                                                           EN REVISIÓN
+                                                       </span>
                                                   )}
                                               </div>
+                                          </div>
+                                      )
+                                  })}
+                              </div>
+                          </div>
+                      )}
+
+                      {/* CONFIRMED LIST */}
+                      <div>
+                          <div className="flex justify-between items-center mb-2">
+                              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Equipo Confirmado</h4>
+                              <span className="text-xs font-bold bg-white px-2 py-1 rounded-md text-slate-500">{approved.length}</span>
+                          </div>
+                          <div className="space-y-2">
+                              {approved.length === 0 && <p className="text-center text-xs text-slate-300 py-2 italic">Sin confirmados.</p>}
+                              {approved.map((p, idx) => {
+                                  const member = members.find(m => m.id === p.memberId);
+                                  return (
+                                      <div key={`app-${idx}`} className="bg-white p-3 rounded-xl flex justify-between items-center shadow-sm border-l-4 border-emerald-400">
+                                          <div className="flex items-center gap-3">
+                                              <img src={member?.photoUrl} className="w-8 h-8 rounded-full bg-slate-200" />
+                                              <div>
+                                                  <p className="text-sm font-bold text-slate-700">{member?.nombres}</p>
+                                                  <span className="text-[10px] text-slate-400 font-bold uppercase">{p.role}</span>
+                                              </div>
+                                          </div>
+                                          {p.attended && (
+                                              <span className="text-[9px] text-sky-500 font-bold flex items-center gap-0.5"><CheckSquare className="w-3 h-3" /> ASISTIÓ</span>
                                           )}
                                       </div>
-                                  </div>
-                              )
-                          })}
+                                  )
+                              })}
+                          </div>
                       </div>
                   </div>
 
                   {/* Footer Actions */}
                   <div className="flex gap-2">
-                      {/* PROPOSE: Leaders of Intercession (IF assigned) or Pastor */}
+                      {/* PROPOSE: Leaders of Intercession (Any group leader) or Pastor */}
                       {(trip.status === 'PLANIFICACION' || trip.status === 'EN_REVISION') && canPropose(trip) && !isMember && (
                           <button 
                             onClick={() => handleOpenPropose(trip.id)}
@@ -382,7 +391,7 @@ const Viajes: React.FC = () => {
                       )}
                   </div>
               </div>
-          ))}
+          )})}
       </div>
 
       {/* PROPOSE MEMBER MODAL */}
@@ -400,7 +409,7 @@ const Viajes: React.FC = () => {
                                <Flame className="w-4 h-4"/>
                                Líder de {myIntercessionGroup?.nombre || 'Intercesión'}
                            </p>
-                           <p className="text-[10px] text-red-600 mt-1">Solo puedes proponer miembros de tu grupo para el viaje de tu grupo.</p>
+                           <p className="text-[10px] text-red-600 mt-1">Solo puedes proponer miembros de tu grupo.</p>
                        </div>
                   )}
                   

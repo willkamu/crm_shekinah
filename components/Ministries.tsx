@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../App.tsx';
 import { Ministry, Member } from '../types';
-import { ShieldCheck, Plus, Edit2, Trash2, Users, ChevronRight, UserPlus, XCircle, Search, X, Check, Save, AlertTriangle, Copy, CheckCircle, Lock } from 'lucide-react';
+import { ShieldCheck, Plus, Edit2, Trash2, Users, ChevronRight, UserPlus, XCircle, Search, X, Check, Save, AlertTriangle, Copy, CheckCircle, Lock, Crown } from 'lucide-react';
 
 const Ministries: React.FC = () => {
   const { ministries, addMinistry, updateMinistry, deleteMinistry, members, assignMinistryRole, currentUser, notify } = useApp();
@@ -11,6 +11,10 @@ const Ministries: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [isGroupOpen, setIsGroupOpen] = useState(false);
+  
+  // Leader Assign Modal
+  const [isLeaderAssignOpen, setIsLeaderAssignOpen] = useState(false);
+  const [targetMinistryId, setTargetMinistryId] = useState<string | null>(null);
   
   // Confirmation State
   const [ministryToDelete, setMinistryToDelete] = useState<string | null>(null);
@@ -33,7 +37,7 @@ const Ministries: React.FC = () => {
   const [tempTitle, setTempTitle] = useState('');
 
   // --- SECURITY LOGIC (PDF 8.5 & 11.5) ---
-  const isGlobalAdmin = currentUser.role === 'PASTOR_PRINCIPAL' || currentUser.role === 'MINISTRO';
+  const isGlobalAdmin = currentUser.role === 'PASTOR_PRINCIPAL' || currentUser.role === 'PASTOR_EJECUTIVO' || currentUser.role === 'MINISTRO';
 
   // Check if current user is the specific leader of a ministry
   const isLeaderOf = (ministry: Ministry) => {
@@ -110,9 +114,14 @@ const Ministries: React.FC = () => {
       }
   };
 
-  const handleAssignLeader = (minId: string, memberId: string) => {
-      updateMinistry(minId, { liderId: memberId });
-      notify("Líder de ministerio actualizado");
+  const handleConfirmLeaderAssign = () => {
+      if (targetMinistryId && selectedMemberId) {
+          updateMinistry(targetMinistryId, { liderId: selectedMemberId });
+          setIsLeaderAssignOpen(false);
+          setTargetMinistryId(null);
+          setSelectedMemberId(null);
+          notify("Líder de ministerio actualizado");
+      }
   };
 
   // Get members of a ministry
@@ -122,6 +131,10 @@ const Ministries: React.FC = () => {
   const filteredMembers = members.filter(m => 
       m.nombres.toLowerCase().includes(searchMemberTerm.toLowerCase()) &&
       (!activeMinistryId || !m.ministryIds.includes(activeMinistryId))
+  );
+
+  const filteredMembersForLeader = members.filter(m => 
+      m.nombres.toLowerCase().includes(searchMemberTerm.toLowerCase())
   );
 
   return (
@@ -218,8 +231,10 @@ const Ministries: React.FC = () => {
                         {isGlobalAdmin && (
                             <button 
                                 onClick={() => { 
-                                    const newLeader = prompt("Ingrese ID del nuevo líder (simulado - usar selector en v2)"); 
-                                    if(newLeader) handleAssignLeader(min.id, newLeader); // Simplified for now, should use modal
+                                    setTargetMinistryId(min.id);
+                                    setSearchMemberTerm('');
+                                    setSelectedMemberId(null);
+                                    setIsLeaderAssignOpen(true);
                                 }}
                                 className="text-[10px] text-brand-blue hover:underline"
                             >
@@ -342,6 +357,53 @@ const Ministries: React.FC = () => {
                       />
                       <button type="submit" className="w-full py-3 bg-brand-blue text-white rounded-2xl font-bold hover:bg-brand-dark transition-colors shadow-glow">Crear</button>
                   </form>
+              </div>
+          </div>
+      )}
+
+      {/* ASSIGN LEADER MODAL (NEW) */}
+      {isLeaderAssignOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
+              <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 relative h-[70vh] flex flex-col border border-white/50">
+                  <button onClick={() => setIsLeaderAssignOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-5 h-5"/></button>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">Asignar Líder</h3>
+                  <p className="text-sm text-slate-500 mb-4">Seleccione al nuevo responsable del ministerio.</p>
+                  
+                  <div className="relative mb-4">
+                      <input 
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-brand-light font-medium"
+                        placeholder="Buscar miembro..."
+                        value={searchMemberTerm}
+                        onChange={e => setSearchMemberTerm(e.target.value)}
+                        autoFocus
+                      />
+                      <Search className="w-5 h-5 text-slate-400 absolute left-3 top-3" />
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-2 mb-4 pr-2 custom-scrollbar">
+                      {filteredMembersForLeader.map(m => (
+                          <div 
+                            key={m.id} 
+                            onClick={() => setSelectedMemberId(m.id)}
+                            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors border ${selectedMemberId === m.id ? 'bg-brand-soft border-brand-blue' : 'bg-white border-slate-100 hover:border-slate-300'}`}
+                          >
+                              <img src={m.photoUrl} className="w-10 h-10 rounded-full bg-slate-200 object-cover" />
+                              <div className="flex-1">
+                                  <p className="font-bold text-slate-800 text-sm">{m.nombres}</p>
+                                  <p className="text-xs text-brand-blue">{m.cargo}</p>
+                              </div>
+                              {selectedMemberId === m.id && <Check className="w-5 h-5 text-brand-blue ml-auto" />}
+                          </div>
+                      ))}
+                  </div>
+
+                  <button 
+                    onClick={handleConfirmLeaderAssign}
+                    disabled={!selectedMemberId}
+                    className="w-full py-3 bg-slate-800 text-white rounded-2xl font-bold hover:bg-black transition-colors disabled:opacity-50 shadow-lg flex justify-center items-center gap-2"
+                  >
+                      <Crown className="w-4 h-4 text-yellow-400" /> Confirmar Líder
+                  </button>
               </div>
           </div>
       )}
