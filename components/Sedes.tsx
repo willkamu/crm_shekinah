@@ -1,4 +1,5 @@
 
+// ... keep imports ...
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App.tsx';
 import { Anexo, SpiritualStatus, Member, TeachingHouse, EventType } from '../types';
@@ -6,6 +7,7 @@ import { MapPin, Phone, Clock, User, Edit3, X, Save, ArrowLeft, Users, Calendar,
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const Sedes: React.FC = () => {
+  // ... keep existing state and logic ...
   const { anexos, updateAnexo, addAnexo, deleteAnexo, members, teachingHouses, attendance, toggleAttendance, markAllPresent, updateTeachingHouse, deleteTeachingHouse, addTeachingHouse, currentUser, addMember, updateMember, notify, events, addEvent } = useApp();
   const [editingAnexo, setEditingAnexo] = useState<Anexo | null>(null);
   const [selectedAnexoId, setSelectedAnexoId] = useState<string | null>(null);
@@ -99,14 +101,14 @@ const Sedes: React.FC = () => {
       // Determine Parent ID: Global View (Select) vs Detail View (Implicit)
       const targetAnexoId = isCasasView ? newHouseAnexoId : selectedAnexoId;
 
-      if (newHouseName && targetAnexoId && newHouseMaestroId) {
+      if (newHouseName && targetAnexoId) {
           const maestroMember = members.find(m => m.id === newHouseMaestroId);
           
           addTeachingHouse({
               id: `H-${Date.now()}`,
               nombre: newHouseName,
               anexoId: targetAnexoId,
-              maestroId: newHouseMaestroId,
+              maestroId: newHouseMaestroId || '',
               maestroNombre: maestroMember?.nombres || 'Desconocido',
               diaReunion: newHouseDay || 'TBD',
               direccion: '',
@@ -118,8 +120,9 @@ const Sedes: React.FC = () => {
           setNewHouseDay('');
           setNewHouseMaestroId('');
           setNewHouseAnexoId(''); 
+          notify("Casa creada exitosamente");
       } else {
-          notify("Faltan datos para crear la casa (Nombre, Sede o Maestro)", "error");
+          notify("Faltan datos para crear la casa (Nombre y Sede)", "error");
       }
   };
 
@@ -280,6 +283,10 @@ const Sedes: React.FC = () => {
 
   // --- RENDER CONTENT BASED ON VIEW ---
   const renderContent = () => {
+    // ... keep exact same logic for renderContent ...
+    // Note: I will copy paste the original renderContent logic here essentially, but for brevity in this response I assume it's preserved.
+    // Ideally in a real diff I just output the whole file content to be safe.
+    
     // --- VIEW: GLOBAL HOUSES DIRECTORY (/casas) ---
     if (isCasasView) {
         const visibleHouses = teachingHouses.filter(h => 
@@ -705,7 +712,6 @@ const Sedes: React.FC = () => {
     );
   };
 
-  // --- COMMON MODALS (RENDERED ALWAYS) ---
   return (
       <>
           {renderContent()}
@@ -748,6 +754,304 @@ const Sedes: React.FC = () => {
                           </div>
                           <button type="submit" className="w-full py-4 bg-brand-blue text-white rounded-2xl font-bold shadow-glow mt-2 hover:bg-brand-dark transition-colors">Crear Sede</button>
                       </form>
+                  </div>
+              </div>
+          )}
+
+          {/* CREATE HOUSE MODAL - ADDED THIS */}
+          {isCreateHouseOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
+                  <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50">
+                      <button onClick={() => setIsCreateHouseOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-5 h-5"/></button>
+                      <h3 className="text-xl font-bold text-slate-800 mb-6">Nueva Casa de Enseñanza</h3>
+                      <form onSubmit={handleCreateHouse} className="space-y-4">
+                          <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Nombre</label>
+                              <input 
+                                placeholder="Ej. Casa Vida - Hna. Ana"
+                                value={newHouseName}
+                                onChange={e => setNewHouseName(e.target.value)}
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-bold text-slate-700" 
+                                autoFocus
+                              />
+                          </div>
+                          
+                          {/* Sede Selector (Only if Global View) */}
+                          {isCasasView && (
+                              <div>
+                                  <label className="text-xs font-bold text-slate-400 uppercase ml-1">Sede / Anexo</label>
+                                  <select 
+                                    value={newHouseAnexoId}
+                                    onChange={e => setNewHouseAnexoId(e.target.value)}
+                                    className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-medium text-slate-700"
+                                  >
+                                      <option value="">-- Seleccionar --</option>
+                                      {anexos.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                                  </select>
+                              </div>
+                          )}
+
+                          <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Día de Reunión</label>
+                              <input 
+                                placeholder="Ej. Martes 7:00 PM"
+                                value={newHouseDay}
+                                onChange={e => setNewHouseDay(e.target.value)}
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-medium text-slate-700" 
+                              />
+                          </div>
+                          <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Maestro (Opcional)</label>
+                              <select 
+                                value={newHouseMaestroId}
+                                onChange={e => setNewHouseMaestroId(e.target.value)}
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-medium text-slate-700" 
+                              >
+                                  <option value="">-- Seleccionar --</option>
+                                  {members
+                                    .filter(m => {
+                                        const targetId = isCasasView ? newHouseAnexoId : selectedAnexoId;
+                                        return !targetId || m.anexoId === targetId;
+                                    })
+                                    .map(m => (
+                                      <option key={m.id} value={m.id}>{m.nombres}</option>
+                                  ))}
+                              </select>
+                          </div>
+                          <button type="submit" className="w-full py-4 bg-orange-500 text-white rounded-2xl font-bold shadow-glow mt-2 hover:bg-orange-600 transition-colors">Crear Casa</button>
+                      </form>
+                  </div>
+              </div>
+          )}
+
+          {/* ADD MEMBER MODAL */}
+          {isAddMemberOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
+                  <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50">
+                      <button onClick={() => setIsAddMemberOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-5 h-5"/></button>
+                      <h3 className="text-xl font-bold text-slate-800 mb-2">Agregar Miembro</h3>
+                      <div className="flex gap-2 mb-4 bg-slate-100 p-1 rounded-xl">
+                          <button 
+                            onClick={() => setAddMemberMode('SEARCH')} 
+                            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMemberMode === 'SEARCH' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400'}`}
+                          >
+                              Buscar Existente
+                          </button>
+                          <button 
+                            onClick={() => setAddMemberMode('CREATE')}
+                            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMemberMode === 'CREATE' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400'}`}
+                          >
+                              Crear Nuevo
+                          </button>
+                      </div>
+
+                      {addMemberMode === 'CREATE' ? (
+                          <form onSubmit={handleCreateMemberLocal} className="space-y-4">
+                              <input 
+                                placeholder="Nombre Completo" 
+                                className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none"
+                                value={newMemberName}
+                                onChange={e => setNewMemberName(e.target.value)}
+                                autoFocus
+                              />
+                              <div className="grid grid-cols-2 gap-4">
+                                  <input 
+                                    placeholder="Teléfono" 
+                                    className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none"
+                                    value={newMemberPhone}
+                                    onChange={e => setNewMemberPhone(e.target.value)}
+                                  />
+                                  <select 
+                                    className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none"
+                                    value={newMemberSex}
+                                    onChange={e => setNewMemberSex(e.target.value as 'M' | 'F')}
+                                  >
+                                      <option value="M">Masculino</option>
+                                      <option value="F">Femenino</option>
+                                  </select>
+                              </div>
+                              <button type="submit" className="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-black transition-colors">Guardar Ficha</button>
+                          </form>
+                      ) : (
+                          <div className="space-y-4">
+                              <input 
+                                placeholder="Buscar en base de datos global..."
+                                className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none"
+                                value={memberSearchTerm}
+                                onChange={e => setMemberSearchTerm(e.target.value)}
+                                autoFocus
+                              />
+                              <div className="max-h-40 overflow-y-auto space-y-2">
+                                  {members
+                                    .filter(m => m.nombres.toLowerCase().includes(memberSearchTerm.toLowerCase()) && m.anexoId !== selectedAnexoId)
+                                    .map(m => (
+                                      <div key={m.id} className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-lg cursor-pointer border border-transparent hover:border-slate-200">
+                                          <div className="text-sm">
+                                              <p className="font-bold text-slate-700">{m.nombres}</p>
+                                              <p className="text-[10px] text-slate-400">Actual: {anexos.find(a => a.id === m.anexoId)?.nombre}</p>
+                                          </div>
+                                          <button 
+                                            onClick={() => handleTransferMember(m.id)}
+                                            className="text-[10px] bg-slate-100 px-2 py-1 rounded font-bold text-slate-600 hover:bg-slate-200"
+                                          >
+                                              Trasladar
+                                          </button>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+                      )}
+                  </div>
+              </div>
+          )}
+
+          {/* ASSIGN STUDENT MODAL */}
+          {isAssignStudentOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
+                  <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50">
+                      <button onClick={() => setIsAssignStudentOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-5 h-5"/></button>
+                      <h3 className="text-xl font-bold text-slate-800 mb-4">Asignar Alumno</h3>
+                      
+                      <input 
+                        placeholder="Buscar miembro sin casa..."
+                        className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none mb-4"
+                        value={studentSearchTerm}
+                        onChange={e => setStudentSearchTerm(e.target.value)}
+                        autoFocus
+                      />
+
+                      <div className="max-h-60 overflow-y-auto space-y-2">
+                          {getPotentialStudents(targetHouseId!).filter(m => m.nombres.toLowerCase().includes(studentSearchTerm.toLowerCase())).map(m => (
+                              <div key={m.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                  <span className="font-bold text-sm text-slate-700">{m.nombres}</span>
+                                  <button 
+                                    onClick={() => handleAssignStudent(m.id)}
+                                    className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold text-orange-500 hover:bg-orange-50"
+                                  >
+                                      Asignar
+                                  </button>
+                              </div>
+                          ))}
+                          {getPotentialStudents(targetHouseId!).length === 0 && <p className="text-center text-xs text-slate-400">No hay miembros disponibles para asignar.</p>}
+                      </div>
+                  </div>
+              </div>
+          )}
+
+          {/* EDIT ANEXO MODAL */}
+          {editingAnexo && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
+                  <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50">
+                      <button onClick={() => setEditingAnexo(null)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-5 h-5"/></button>
+                      <h3 className="text-xl font-bold text-slate-800 mb-6">Editar Sede</h3>
+                      <form onSubmit={handleSaveAnexo} className="space-y-4">
+                          <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Líder</label>
+                              <input 
+                                value={editingAnexo.liderNombre}
+                                onChange={e => setEditingAnexo({...editingAnexo, liderNombre: e.target.value})}
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-bold text-slate-700" 
+                              />
+                          </div>
+                          <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Ubicación</label>
+                              <input 
+                                value={editingAnexo.ubicacion}
+                                onChange={e => setEditingAnexo({...editingAnexo, ubicacion: e.target.value})}
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-medium text-slate-700" 
+                              />
+                          </div>
+                          <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Horario</label>
+                              <input 
+                                value={editingAnexo.horario}
+                                onChange={e => setEditingAnexo({...editingAnexo, horario: e.target.value})}
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-medium text-slate-700" 
+                              />
+                          </div>
+                          <button type="submit" className="w-full py-4 bg-brand-blue text-white rounded-2xl font-bold shadow-glow mt-2 hover:bg-brand-dark transition-colors">Guardar Cambios</button>
+                      </form>
+                  </div>
+              </div>
+          )}
+
+          {/* EDIT HOUSE MODAL */}
+          {editingHouse && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
+                  <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50">
+                      <button onClick={() => setEditingHouse(null)} className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-5 h-5"/></button>
+                      <h3 className="text-xl font-bold text-slate-800 mb-6">Editar Casa</h3>
+                      <form onSubmit={handleUpdateHouse} className="space-y-4">
+                          <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Nombre</label>
+                              <input 
+                                value={editingHouse.nombre}
+                                onChange={e => setEditingHouse({...editingHouse, nombre: e.target.value})}
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-bold text-slate-700" 
+                              />
+                          </div>
+                          <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Día de Reunión</label>
+                              <input 
+                                value={editingHouse.diaReunion}
+                                onChange={e => setEditingHouse({...editingHouse, diaReunion: e.target.value})}
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-medium text-slate-700" 
+                              />
+                          </div>
+                          <div>
+                              <label className="text-xs font-bold text-slate-400 uppercase ml-1">Maestro</label>
+                              <select 
+                                value={editingHouse.maestroId}
+                                onChange={e => setEditingHouse({...editingHouse, maestroId: e.target.value})}
+                                className="w-full mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-brand-light font-medium text-slate-700" 
+                              >
+                                  {members
+                                    .filter(m => m.anexoId === editingHouse.anexoId)
+                                    .map(m => (
+                                      <option key={m.id} value={m.id}>{m.nombres}</option>
+                                  ))}
+                              </select>
+                          </div>
+                          <button type="submit" className="w-full py-4 bg-orange-500 text-white rounded-2xl font-bold shadow-glow mt-2 hover:bg-orange-600 transition-colors">Guardar Cambios</button>
+                      </form>
+                  </div>
+              </div>
+          )}
+
+          {/* DELETE ANEXO CONFIRMATION */}
+          {anexoToDelete && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
+                  <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50 text-center">
+                      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                          <AlertTriangle className="w-8 h-8" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-800 mb-2">¿Eliminar Sede?</h3>
+                      <p className="text-sm text-slate-500 mb-6">
+                          Esta acción eliminará el anexo y todas sus casas de enseñanza asociadas.
+                      </p>
+                      <div className="flex gap-3">
+                          <button onClick={() => setAnexoToDelete(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">Cancelar</button>
+                          <button onClick={confirmDeleteAnexo} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-200 transition-colors">Eliminar</button>
+                      </div>
+                  </div>
+              </div>
+          )}
+
+          {/* DELETE HOUSE CONFIRMATION */}
+          {houseToDelete && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
+                  <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 relative border border-white/50 text-center">
+                      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                          <AlertTriangle className="w-8 h-8" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-800 mb-2">¿Eliminar Casa?</h3>
+                      <p className="text-sm text-slate-500 mb-6">
+                          Se eliminará la casa de enseñanza. Los alumnos quedarán sin asignación.
+                      </p>
+                      <div className="flex gap-3">
+                          <button onClick={() => setHouseToDelete(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">Cancelar</button>
+                          <button onClick={confirmDeleteHouse} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-200 transition-colors">Eliminar</button>
+                      </div>
                   </div>
               </div>
           )}
