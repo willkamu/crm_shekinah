@@ -2,10 +2,12 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { useApp } from '../App.tsx';
 import { FinanceTransaction, MonthlyReport } from '../types';
+import useMembresiaActiva from '../firebase/useMembresiaActiva.js';
 import { DollarSign, Wallet, Gift, Calendar, ArrowDownLeft, TrendingUp, UserCheck, FileText, Upload, CheckCircle2, AlertCircle, X, Eye, Printer, BarChart3, Download, UploadCloud, Loader2, Church } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const Finances: React.FC = () => {
+  const membresiaActiva = useMembresiaActiva(); // <--- AÑADE ESTA LÍNEA
   const { finances, addTransaction, currentUser, members, monthlyReports, addMonthlyReport, updateMonthlyReport, notify, anexos } = useApp();
   const [activeTab, setActiveTab] = useState<'TRANSACCIONES' | 'REPORTES' | 'ANALISIS'>('TRANSACCIONES');
   

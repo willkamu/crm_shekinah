@@ -1,6 +1,7 @@
 
 import React, { useState, createContext, useContext, useEffect, useCallback } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import Members from './components/Members';
@@ -21,6 +22,7 @@ import Profile from './components/Profile';
 import NotificationsPage from './components/NotificationsPage';
 
 import { GlobalState, UserRole, Member, Anexo, Event, Ministry, FinanceTransaction, Course, TeachingHouse, IntercesionGroup, EpmiEnrollment, IntercesionLog, MissionTrip, HistoryRecord, Notification, MonthlyReport, AuditRecord, IndicatorLevel, CourseMaterial, SystemUser, CourseOffering, ClassSession } from './types';
+import { auth } from './firebase/firebase.js';
 import { MOCK_ANEXOS, MOCK_MEMBERS, MOCK_EVENTS, MOCK_MINISTRIES, MOCK_COURSES, MOCK_TEACHING_HOUSES, MOCK_FINANCES, MOCK_INTERCESION_GROUPS, MOCK_EPMI_ENROLLMENTS, MOCK_INTERCESION_LOGS, MOCK_TRIPS, MOCK_HISTORY, MOCK_NOTIFICATIONS, MOCK_MONTHLY_REPORTS } from './services/mockData';
 
 export const AppContext = createContext<GlobalState | undefined>(undefined);
@@ -259,56 +261,72 @@ const App: React.FC = () => {
       notify('Usuario eliminado', 'error');
   };
 
-  const login = (emailOrRole: string, password?: string): boolean => {
-      // 1. DEMO SHORTCUTS
-      if (emailOrRole === 'PASTOR_PRINCIPAL') {
-          setCurrentUser({ role: 'PASTOR_PRINCIPAL', anexoId: 'ALL', name: 'Pastor Cobertura' });
-          setIsAuthenticated(true);
-          return true;
-      } 
-      if (emailOrRole === 'LIDER_ANEXO') {
-          setCurrentUser({ role: 'LIDER_ANEXO', anexoId: 'ANX-02', name: 'Hno. Roberto', memberId: 'MEM-003' });
-          setIsAuthenticated(true);
-          return true;
-      }
-      if (emailOrRole === 'MAESTRO_CASA') {
-          setCurrentUser({ role: 'MAESTRO_CASA', anexoId: 'ANX-01', name: 'Hna. Rosa', memberId: 'MEM-006' }); 
-          setIsAuthenticated(true);
-          return true;
-      }
-      if (emailOrRole === 'MIEMBRO') {
-          setCurrentUser({ role: 'MIEMBRO', anexoId: 'ANX-01', name: 'Maria Gonzalez', memberId: 'MEM-002' });
-          setIsAuthenticated(true);
-          return true;
-      }
-      // NEW: DEMO FOR INTERCESION LEADER
-      if (emailOrRole === 'LIDER_INTERCESION') {
-          setCurrentUser({ role: 'LIDER_INTERCESION', anexoId: 'ALL', name: 'Líder Intercesión', memberId: 'MEM-012' }); // MOCK LEADER OF GROUP 1
-          setIsAuthenticated(true);
-          return true;
-      }
+  const login = async (emailOrRole: string, password?: string) => {
+    // Login para Miembros con Google
+    if (emailOrRole === 'MIEMBRO' && !password) {
+      const provider = new GoogleAuthProvider();
+      try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        
+        // Buscar o crear perfil de miembro
+        let memberProfile = members.find(m => m.email === user.email);
+        if (!memberProfile) {
+            const newMember: Member = {
+                id: `MEM-${Date.now()}`,
+                nombres: user.displayName || 'Nuevo Miembro',
+                email: user.email || '',
+                photoUrl: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
+                anexoId: 'ANX-01', // Asignar a anexo central por defecto
+                estatus: 'Nuevo',
+                cargo: 'Miembro',
+                attendance_level: 'AMARILLO',
+                fidelity_level: 'AMARILLO',
+                service_level: 'ROJO',
+                coursesCompletedIds: [],
+                ministryIds: [],
+                joinedAt: new Date().toISOString(),
+            };
+            addMember(newMember);
+            memberProfile = newMember;
+        }
 
-      // 2. REAL AUTHENTICATION
-      const user = systemUsers.find(u => u.email === emailOrRole && u.password === password);
-      if (user) {
-          setCurrentUser({ 
-              role: user.role, 
-              anexoId: user.anexoId || 'ALL', 
-              name: user.name, 
-              memberId: user.memberId 
-          });
-          setIsAuthenticated(true);
-          logAudit('LOGIN', user.name, `Inicio de sesión con correo`);
-          return true;
-      }
+        setCurrentUser({ role: 'MIEMBRO', anexoId: memberProfile.anexoId, name: memberProfile.nombres, memberId: memberProfile.id });
+        setIsAuthenticated(true);
+        logAudit('LOGIN_GOOGLE', user.displayName || 'N/A', 'Inicio de sesión de miembro');
 
-      notify("Credenciales incorrectas", "error");
-      return false;
+      } catch (error: any) {
+        console.error("Error en login con Google:", error);
+        notify(`Error de Google: ${error.message}`, 'error');
+      }
+    } 
+    // Login para Líderes/Pastores con email y contraseña
+    else if (password) {
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, emailOrRole, password);
+        const firebaseUser = userCredential.user;
+        
+        const appUser = systemUsers.find(u => u.email.toLowerCase() === firebaseUser.email?.toLowerCase());
+
+        if (appUser) {
+            setCurrentUser({ role: appUser.role, anexoId: appUser.anexoId, name: appUser.name, memberId: appUser.memberId });
+            setIsAuthenticated(true);
+            logAudit('LOGIN_EMAIL', appUser.name, 'Inicio de sesión de líder/pastor');
+        } else {
+            notify('Usuario autenticado pero no registrado en el sistema.', 'error');
+            await signOut(auth);
+        }
+      } catch (error: any) {
+        console.error("Error en login con email:", error);
+        notify('Credenciales incorrectas. Verifique su email y contraseña.', 'error');
+      }
+    }
   };
 
-  const logout = () => {
-      setIsAuthenticated(false);
-      logAudit('LOGOUT', currentUser.name, 'Cierre de sesión');
+  const logout = async () => {
+    await signOut(auth);
+    setIsAuthenticated(false);
+    logAudit('LOGOUT', currentUser.name, 'Cierre de sesión');
   };
 
   const notify = (msg: string, type: 'success' | 'error' = 'success') => {

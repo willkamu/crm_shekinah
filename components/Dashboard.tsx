@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../App.tsx';
+import useMembresiaActiva from '../firebase/useMembresiaActiva.js';
 import { Users, Home, X, Plus, Edit2, Trash2, ChevronRight, Activity, TrendingUp, MapPin, GraduationCap, Plane, AlertTriangle, CheckCircle, BarChart3, AlertCircle, BookOpen, Calendar, CheckSquare, ShieldCheck, Wallet } from 'lucide-react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { Anexo, TeachingHouse } from '../types';
@@ -205,7 +206,7 @@ const Dashboard: React.FC = () => {
   const displayedAnexos = anexos;
 
   // Stats Logic (Aggregated)
-  const totalMembers = members.length;
+  const totalMembers = useMembresiaActiva();
   const totalFinance = finances.reduce((sum, f) => sum + f.monto, 0);
   const activeEpmiStudents = epmiEnrollments.filter(e => e.status === 'ACTIVO').length;
   
