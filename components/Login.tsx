@@ -1,115 +1,159 @@
 
 import React, { useState } from 'react';
-import { useApp } from '../App.tsx';
+import { useApp } from '../App';
 import { Church, Lock, User, Flame } from 'lucide-react';
 
 const Login: React.FC = () => {
   const { login } = useApp();
+
   const [activeTab, setActiveTab] = useState<'MEMBER' | 'LEADER'>('MEMBER');
-  
-  // Real Login State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLeaderLogin = (e: React.FormEvent) => {
-      e.preventDefault();
-      login(email, password);
+    e.preventDefault();
+
+    // 🔐 Login lógico (mock) para líderes
+    if (!email || !password) {
+      alert('Ingrese usuario y contraseña');
+      return;
+    }
+
+    // Por ahora todo líder entra como LIDER_ANEXO
+    login('LIDER_ANEXO');
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f0f4f8] p-6 relative overflow-hidden">
-      
-      {/* Background Decor */}
-      <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-brand-blue/10 rounded-full blur-3xl pointer-events-none z-0"></div>
-      <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none z-0"></div>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 relative overflow-hidden">
 
-      <div className="w-full max-w-[400px] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-slideUp relative z-10 border border-white/50">
-        
-        <div className="p-8 pb-6 text-center">
-            <div className="w-16 h-16 bg-brand-blue rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-glow text-white">
-                <Church className="w-8 h-8" />
-            </div>
-            <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">La Shekinah</h1>
-            <p className="text-sm text-slate-400 font-medium mt-1">Plataforma de Gestión Ministerial</p>
+      {/* Decoración */}
+      <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-sky-500/10 rounded-full blur-3xl" />
+
+      <div className="w-full max-w-[400px] bg-white rounded-[2rem] shadow-2xl overflow-hidden relative z-10 border border-slate-100">
+
+        {/* Header */}
+        <div className="p-8 text-center bg-white">
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-lg shadow-blue-200 ring-4 ring-blue-50">
+            <Church className="w-8 h-8" />
+          </div>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">La Shekinah</h1>
+          <p className="text-sm text-slate-400 font-medium mt-1">Plataforma de Gestión Ministerial</p>
         </div>
 
-        {/* Custom Tabs */}
+        {/* Tabs */}
         <div className="px-8 mb-6">
-            <div className="flex bg-slate-100 p-1.5 rounded-2xl">
-                <button 
-                    onClick={() => setActiveTab('MEMBER')}
-                    className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'MEMBER' ? 'bg-white text-brand-blue shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                >
-                    Soy Miembro
-                </button>
-                <button 
-                    onClick={() => setActiveTab('LEADER')}
-                    className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'LEADER' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                >
-                    Soy Líder/Pastor
-                </button>
-            </div>
+          <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+            <button
+              onClick={() => setActiveTab('MEMBER')}
+              className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'MEMBER'
+                ? 'bg-white text-blue-600 shadow-sm border border-slate-100'
+                : 'text-slate-400 hover:text-slate-600'
+                }`}
+            >
+              Soy Miembro
+            </button>
+
+            <button
+              onClick={() => setActiveTab('LEADER')}
+              className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'LEADER'
+                ? 'bg-white text-blue-600 shadow-sm border border-slate-100'
+                : 'text-slate-400 hover:text-slate-600'
+                }`}
+            >
+              Soy Líder / Pastor
+            </button>
+          </div>
         </div>
 
+        {/* Contenido */}
         <div className="px-8 pb-10">
-            {activeTab === 'MEMBER' && (
-                <div className="space-y-4 animate-fadeIn">
-                    <button 
-                        onClick={() => login('MIEMBRO')} 
-                        className="w-full py-4 bg-white border-2 border-slate-100 hover:border-brand-blue/30 text-slate-600 font-bold rounded-2xl transition-all flex items-center justify-center gap-3 group"
-                    >
-                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                        Continuar con Google
-                    </button>
-                    <p className="text-[10px] text-center text-slate-400 px-4 leading-relaxed">
-                        Al ingresar, aceptas el código de honor y la política de privacidad de datos de la iglesia.
-                    </p>
-                </div>
-            )}
 
-            {activeTab === 'LEADER' && (
-                <form onSubmit={handleLeaderLogin} className="space-y-4 animate-fadeIn">
-                    <div className="relative">
-                        <input 
-                            type="email" 
-                            placeholder="Usuario / Correo" 
-                            className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-100 text-slate-700 font-bold text-sm outline-none transition-shadow"
-                            value={email}
-                            onChange={e => setEmail(e.target.value)}
-                        />
-                        <User className="w-5 h-5 text-slate-300 absolute left-4 top-4" />
-                    </div>
-                    <div className="relative">
-                        <input 
-                            type="password" 
-                            placeholder="Contraseña" 
-                            className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-100 text-slate-700 font-bold text-sm outline-none transition-shadow"
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                        />
-                        <Lock className="w-5 h-5 text-slate-300 absolute left-4 top-4" />
-                    </div>
-                    
-                    <button 
-                        type="submit"
-                        className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
-                    >
-                        Acceder al Panel
-                    </button>
+          {/* MIEMBRO */}
+          {activeTab === 'MEMBER' && (
+            <div className="space-y-6">
+              <button
+                onClick={() => login('MIEMBRO')}
+                className="w-full py-4 bg-white border-2 border-slate-100 hover:border-blue-200 hover:bg-slate-50 rounded-xl font-bold flex items-center justify-center gap-3 transition-all group shadow-sm text-slate-700 cursor-pointer"
+              >
+                <img
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
+                  className="w-5 h-5 group-hover:scale-110 transition-transform"
+                />
+                Continuar con Google
+              </button>
 
-                    <div className="pt-4 grid grid-cols-3 gap-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-center">
-                        <button type="button" onClick={() => login('PASTOR_PRINCIPAL')} className="hover:text-indigo-500 transition-colors p-1 border border-slate-100 rounded bg-slate-50">Demo Pastor</button>
-                        <button type="button" onClick={() => login('LIDER_ANEXO')} className="hover:text-indigo-500 transition-colors p-1 border border-slate-100 rounded bg-slate-50">Demo Líder</button>
-                        <button type="button" onClick={() => login('LIDER_INTERCESION')} className="hover:text-red-500 transition-colors p-1 border border-red-100 rounded bg-red-50 text-red-400 flex flex-col items-center justify-center gap-1">
-                            <Flame className="w-3 h-3"/> Demo Inter.
-                        </button>
-                    </div>
-                </form>
-            )}
+              <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 text-center">
+                <p className="text-xs text-blue-800 font-medium">
+                  Accederás a tu perfil de miembro, cursos y células.
+                </p>
+              </div>
+
+              <p className="text-[10px] text-center text-slate-400 font-medium">
+                Al ingresar aceptas las políticas de privacidad de la iglesia.
+              </p>
+            </div>
+          )}
+
+          {/* LÍDER */}
+          {activeTab === 'LEADER' && (
+            <form onSubmit={handleLeaderLogin} className="space-y-5">
+
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Usuario o correo"
+                  className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-xl text-sm font-bold border-2 border-transparent focus:border-blue-500 focus:bg-white outline-none transition-all placeholder:text-slate-400 text-slate-800"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                />
+                <User className="w-5 h-5 absolute left-4 top-4 text-slate-400" />
+              </div>
+
+              <div className="relative">
+                <input
+                  type="password"
+                  placeholder="Contraseña"
+                  className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-xl text-sm font-bold border-2 border-transparent focus:border-blue-500 focus:bg-white outline-none transition-all placeholder:text-slate-400 text-slate-800"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                />
+                <Lock className="w-5 h-5 absolute left-4 top-4 text-slate-400" />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 hover:shadow-xl transition-all active:scale-[0.98] cursor-pointer"
+              >
+                Acceder al Panel
+              </button>
+
+              {/* DEMOS */}
+              <div className="grid grid-cols-3 gap-2 pt-2 text-[10px] font-bold text-center">
+                <button type="button" onClick={() => login('PASTOR_PRINCIPAL')} className="bg-slate-50 hover:bg-slate-100 rounded-lg p-2 border border-slate-200 text-slate-600 transition-colors cursor-pointer">
+                  Demo Pastor
+                </button>
+                <button type="button" onClick={() => login('LIDER_ANEXO')} className="bg-slate-50 hover:bg-slate-100 rounded-lg p-2 border border-slate-200 text-slate-600 transition-colors cursor-pointer">
+                  Demo Líder
+                </button>
+                <button
+                  type="button"
+                  onClick={() => login('LIDER_INTERCESION')}
+                  className="bg-red-50 hover:bg-red-100 rounded-lg p-2 border border-red-100 text-red-600 flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                >
+                  <Flame className="w-3 h-3" />
+                  Inter.
+                </button>
+              </div>
+            </form>
+          )}
         </div>
-        
-        <div className="bg-slate-50 p-4 text-center border-t border-slate-100">
-            <p className="text-[10px] font-bold text-slate-300 uppercase">ChMS Shekinah v1.0 Secure</p>
+
+        {/* Footer */}
+        <div className="bg-slate-50/50 p-4 text-center border-t border-slate-100">
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+            CHMS Shekinah v1.0
+          </p>
         </div>
       </div>
     </div>

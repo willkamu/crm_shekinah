@@ -24,7 +24,7 @@ export enum SpiritualStatus {
 }
 
 // Ecclesiastical Roles (Ranks/Titles) - Updated based on User Feedback
-export type EcclesiasticalRole = 
+export type EcclesiasticalRole =
   | 'Pastor Cobertura' // Replaces Pastor Principal
   | 'Pastor'
   | 'Pastora' // Gender variant
@@ -50,14 +50,17 @@ export type EcclesiasticalRole =
 export type IndicatorLevel = 'VERDE' | 'AMARILLO' | 'NARANJA' | 'ROJO';
 
 // Roles (System Access) - PDF Part 5.2
-export type UserRole = 
-  | 'PASTOR_PRINCIPAL' 
-  | 'PASTOR_EJECUTIVO' // NEW: Equipo Pastoral / Mesa Directiva
-  | 'MINISTRO' 
-  | 'LIDER_ANEXO' 
-  | 'LIDER_INTERCESION' // Added specific role
-  | 'MAESTRO_CASA' 
-  | 'SECRETARIA_CASA' 
+export type UserRole =
+  | 'PASTOR_GENERAL' // NEW v1.1
+  | 'PASTORA_GENERAL' // NEW v1.1
+  | 'PASTOR_PRINCIPAL' // Deprecated in v1.1 but kept for compat
+  | 'PASTOR_EJECUTIVO'
+  | 'SECRETARIA_PASTORAL' // NEW v1.1
+  | 'MINISTRO'
+  | 'LIDER_ANEXO'
+  | 'LIDER_INTERCESION'
+  | 'MAESTRO_CASA'
+  | 'SECRETARIA_CASA'
   | 'SECRETARIA_ANEXO'
   | 'MIEMBRO';
 
@@ -102,7 +105,7 @@ export interface Anexo {
   liderId: string; // FK Member
   liderNombre: string; // Denormalized for UI
   telefono: string;
-  horario: string;
+  schedule: { day: string; time: string; type: string }[];
 }
 
 // Casas de Enseñanza
@@ -114,7 +117,7 @@ export interface TeachingHouse {
   maestroNombre: string;
   secretariaId?: string;
   direccion: string;
-  diaReunion: string;
+  schedule: { day: string; time: string; type: string }[];
   active: boolean;
 }
 
@@ -137,10 +140,29 @@ export interface Course {
   // UI Specific properties
   descripcion?: string;
   nivel?: number;
-  tipo?: 'CENTRAL' | 'LOCAL'; 
+  tipo?: 'CENTRAL' | 'LOCAL';
   materials?: CourseMaterial[];
   enrolledStudentIds?: string[];
   requests?: string[]; // Pending enrollment requests (Member IDs)
+}
+
+// v1.1 Inventory
+export interface InventoryItem {
+  id: string;
+  scope_tipo: 'ANEXO' | 'CASA_ENSENANZA';
+  scope_id: string; // anexoId or teachingHouseId
+  nombre_bien: string;
+  // v2.0 Category Field
+  categoria?: 'Audio' | 'Muebles' | 'Instrumentos' | 'Cocina' | 'Otro';
+  descripcion: string;
+  cantidad: number;
+  estado_bien: 'NUEVO' | 'BUENO' | 'REGULAR' | 'DETERIORADO' | 'MALO/DAÑADO'; // Updated status
+
+  evidencia_url?: string;
+  responsable_id: string; // Member ID
+  fecha_registro: string;
+  fecha_actualiza: string;
+  activo: boolean;
 }
 
 export interface ClassSession {
@@ -152,15 +174,15 @@ export interface ClassSession {
 
 // Evaluation System Types
 export interface EvaluationItem {
-    id: string;
-    name: string; // e.g., "Examen Final"
-    weight: number; // e.g., 50 (percentage)
+  id: string;
+  name: string; // e.g., "Examen Final"
+  weight: number; // e.g., 50 (percentage)
 }
 
 export interface StudentGrade {
-    memberId: string;
-    scores: Record<string, number>; // evaluationId -> score (0-20)
-    finalGrade: number;
+  memberId: string;
+  scores: Record<string, number>; // evaluationId -> score (0-20)
+  finalGrade: number;
 }
 
 // Course Offering (Instance of a Course being taught) - PDF 7.4.2
@@ -182,11 +204,34 @@ export interface CourseOffering {
   active: boolean;
 }
 
+// Member Special Status Enums v1.1
+export enum FidelidadEstado {
+  SIN_INFO = 'SIN_INFO',
+  FIDEL = 'FIDEL',
+  INTERMITENTE = 'INTERMITENTE',
+  BAJA = 'BAJA',
+  NINGUNA = 'NINGUNA'
+}
+
+export enum GraduacionEstado {
+  NINGUNO = 'NINGUNO',
+  CANDIDATO = 'CANDIDATO',
+  GRADUADO = 'GRADUADO',
+  GRADUACION_RETENIDA = 'GRADUACION_RETENIDA'
+}
+
+export enum AdmisionEstado {
+  NORMAL = 'NORMAL',
+  RESTRINGIDO = 'RESTRINGIDO'
+}
+
 // Members (Ficha 360 - PDF Part 5.1 & 7.2.2)
 export interface Member {
   id: string;
+  dni?: string; // v1.1 for Batch Upload
   nombres: string;
   telefono: string;
+  email?: string;
   sex: 'M' | 'F'; // Gender for Role Logic
   direccion?: string;
   fechaNacimiento?: string;
@@ -194,33 +239,42 @@ export interface Member {
   profesion?: string;
   fechaBautismo?: string;
   joinedAt?: string; // Fecha de ingreso para analítica
-  
+
   // Estructura
   anexoId: string;
   teachingHouseId?: string;
-  
+
   // Estatus Espiritual & Cargo
   estatus: SpiritualStatus;
   cargo: EcclesiasticalRole; // Nuevo campo: Título Ministerial
-  
+
   // Semáforos Automáticos (Calculados)
   attendance_level: IndicatorLevel;
   fidelity_level: IndicatorLevel;
   service_level: IndicatorLevel;
-  
+
   // Flags
   candidate_epmi: boolean;
   completed_basicos: boolean;
-  
+
   // Data
   coursesCompletedIds: string[];
   ministryIds: string[]; // Simple ID ref
   ministryRoles?: Record<string, string>; // MinistryID -> Role Name (e.g. "Guitarrista")
   photoUrl?: string;
   habilidades?: string[]; // PDF 5.1
-  
+
   // Intercesión (Specific Logic)
   intercesionGroupId?: string; // Grupo 1-5
+
+  // v1.1 Fields
+  fidelidad_estado?: FidelidadEstado;
+  graduacion_estado?: GraduacionEstado;
+  graduacion_motivo?: string;
+  graduacion_revisar_en?: string; // ISO Date
+  admision_estado?: AdmisionEstado;
+  admision_motivo?: string;
+  admision_fecha?: string; // ISO Date
 }
 
 // EPMI Specific Types (PDF Part 7.4.6 & 18.6)
@@ -283,27 +337,71 @@ export interface IntercesionLog {
 export interface FinanceTransaction {
   id: string;
   fecha: string;
-  tipo: 'Diezmo' | 'Ofrenda' | 'Honra Especial' | 'Actividad';
+  tipo: 'Diezmo' | 'Ofrenda' | 'Honra Especial' | 'Actividad' | 'Gasto';
   monto: number;
   anexoId: string;
-  miembroId?: string; 
+  miembroId?: string;
+  teachingHouseId?: string; // v1.1 For grouping offerings by Casa
   detalle?: string;
   eventoVinculadoId?: string;
+
+  // v2.0 Audit & Custody Fields
+  countedBy?: string;     // Lider que contó
+  witnessBy?: string;     // Testigo
+  custodyType?: 'DEPOSITO' | 'CUSTODIA_LIDER' | 'EFECTIVO_CUSTODIA';
+  evidenceUrl?: string;   // Foto voucher / hoja entrega
+  treasurerName?: string; // Quien recibió en custodia
+  invoiceAmount?: number; // Monto exacto en recibo (Egresos)
+  status?: 'COMPLETADO' | 'PENDIENTE_APROBACION_ANEXO' | 'APROBADO' | 'RECHAZADO';
+}
+
+// v1.1 Diezmo Anexo Management
+export interface DiezmoAnexo {
+  id: string;
+  anexo_id: string;
+  fecha: string;
+  monto: number;
+  estado: 'PENDIENTE_ENTREGA' | 'ENTREGADO_CENTRAL';
+  evidencia_url?: string;
+  observacion?: string;
+  registrado_por: string; // ID
+  fecha_registro: string;
+  fecha_actualiza: string;
+}
+
+export interface ExpenseItem {
+  id: string;
+  descripcion: string;
+  monto: number;
+  categoria?: string; // 'Servicios', 'Alquiler', 'Materiales', 'Transporte', 'Otros'
 }
 
 // Monthly Reports (PDF Part 7.7.1)
 export interface MonthlyReport {
   id: string;
   anexoId: string;
+  teachingHouseId?: string; // v1.1 Distinguish between Anexo Central report and Teaching House report
   month: number;
   year: number;
   totalOfrendas: number;
   totalDiezmos: number;
   totalHonras: number;
   totalGeneral: number;
+
+  // v1.1 Fields
+  ingresos_total?: number;
+  egresos_total?: number;
+  detalles_egresos?: ExpenseItem[]; // v1.1 Detailed breakdown
+  saldo_calculado?: number;
+  nota_tesorero?: string;
+
   status: 'PENDIENTE' | 'ENVIADO' | 'RECIBIDO';
   evidenceUrl?: string; // Mock URL for PDF/Photo
   fechaEnvio?: string;
+
+  // v3.4 Custody Fields
+  deliveryMethod?: 'EFECTIVO' | 'DEPOSITO' | 'TRANSFERENCIA';
+  receiverName?: string;
 }
 
 // Mission Trips (PDF Part 7.6)
@@ -339,14 +437,14 @@ export interface HistoryRecord {
 export interface GlobalState {
   // Auth & Users
   isAuthenticated: boolean;
-  currentUser: { role: UserRole; anexoId: string | 'ALL'; name: string; memberId?: string }; 
+  currentUser: { role: UserRole; anexoId: string | 'ALL'; name: string; memberId?: string };
   setCurrentUser: (user: { role: UserRole; anexoId: string | 'ALL'; name: string; memberId?: string }) => void;
   systemUsers: SystemUser[]; // List of all system users
   addSystemUser: (user: SystemUser) => void;
   deleteSystemUser: (id: string) => void;
-  login: (emailOrRole: string, password?: string) => boolean; // Updated signature
+  login: (emailOrRole: string, password?: string) => boolean;
   logout: () => void;
-  
+
   notifications: Notification[];
   markNotificationRead: (id: string) => void;
 
@@ -354,27 +452,27 @@ export interface GlobalState {
   addAnexo: (anexo: Anexo) => void;
   updateAnexo: (id: string, data: Partial<Anexo>) => void;
   deleteAnexo: (id: string) => void;
-  
+
   teachingHouses: TeachingHouse[];
   addTeachingHouse: (house: TeachingHouse) => void;
   updateTeachingHouse: (id: string, data: Partial<TeachingHouse>) => void;
   deleteTeachingHouse: (id: string) => void;
-  
+
   members: Member[];
   addMember: (member: Member) => void;
   updateMember: (id: string, data: Partial<Member>) => void;
   deleteMember: (id: string) => void;
   updateMemberPhoto: (id: string, url: string) => void;
   assignMinistryRole: (memberId: string, ministryId: string, role: string) => void;
-  
+
   events: Event[];
   addEvent: (event: Event) => void;
-  updateEvent: (id: string, data: Partial<Event>) => void; 
-  
+  updateEvent: (id: string, data: Partial<Event>) => void;
+
   attendance: Record<string, boolean>;
   toggleAttendance: (eventId: string, memberId: string) => void;
   markAllPresent: (eventId: string, memberIds: string[]) => void;
-  
+
   eventRegistrations: Record<string, string[]>; // eventId -> [memberIds]
   toggleEventRegistration: (eventId: string, memberId: string) => void;
 
@@ -382,7 +480,7 @@ export interface GlobalState {
   addMinistry: (min: Ministry) => void;
   updateMinistry: (id: string, data: Partial<Ministry>) => void;
   deleteMinistry: (id: string) => void;
-  
+
   // Intercesion
   intercesionGroups: IntercesionGroup[];
   intercesionLogs: IntercesionLog[];
@@ -392,10 +490,10 @@ export interface GlobalState {
   addIntercesionGroup: (group: IntercesionGroup) => void;
   updateIntercesionGroup: (id: string, data: Partial<IntercesionGroup>) => void;
   deleteIntercesionGroup: (id: string) => void;
-  
+
   finances: FinanceTransaction[];
   addTransaction: (t: FinanceTransaction) => void;
-  
+
   monthlyReports: MonthlyReport[];
   addMonthlyReport: (report: MonthlyReport) => void;
   updateMonthlyReport: (id: string, data: Partial<MonthlyReport>) => void;
@@ -404,31 +502,31 @@ export interface GlobalState {
   addCourse: (c: Course) => void;
   updateCourse: (id: string, data: Partial<Course>) => void;
   deleteCourse: (id: string) => void;
-  enrollStudentInCourse: (courseId: string, memberId: string) => void; 
-  unenrollStudentFromCourse: (courseId: string, memberId: string) => void; 
-  addCourseMaterial: (courseId: string, material: CourseMaterial) => void; 
-  requestCourseEnrollment: (courseId: string, memberId: string) => void; 
-  approveCourseEnrollment: (courseId: string, memberId: string, approved: boolean) => void; 
-  
+  enrollStudentInCourse: (courseId: string, memberId: string) => void;
+  unenrollStudentFromCourse: (courseId: string, memberId: string) => void;
+  addCourseMaterial: (courseId: string, material: CourseMaterial) => void;
+  requestCourseEnrollment: (courseId: string, memberId: string) => void;
+  approveCourseEnrollment: (courseId: string, memberId: string, approved: boolean) => void;
+
   // Course Offerings (Active Classes)
   courseOfferings: CourseOffering[];
   openCourseOffering: (offering: CourseOffering) => void;
   updateCourseOffering: (id: string, data: Partial<CourseOffering>) => void;
-  deleteCourseOffering: (id: string) => void; 
-  updateOfferingSession: (offeringId: string, sessionId: string, newDate: string) => void; 
+  deleteCourseOffering: (id: string) => void;
+  updateOfferingSession: (offeringId: string, sessionId: string, newDate: string) => void;
   registerCourseGrade: (offeringId: string, memberId: string, grade: number) => void; // Traceability
 
   // EPMI Logic
   epmiEnrollments: EpmiEnrollment[];
   enrollEpmiStudent: (memberId: string) => void;
   updateEpmiStudent: (id: string, data: Partial<EpmiEnrollment>) => void;
-  
+
   // Trips
   trips: MissionTrip[];
   addTrip: (trip: MissionTrip) => void;
   updateTrip: (id: string, data: Partial<MissionTrip>) => void;
   markTripAttendance: (tripId: string, memberId: string, attended: boolean) => void;
-  
+
   // General History
   history: HistoryRecord[];
   addHistoryNote: (memberId: string, note: string) => void;
@@ -442,4 +540,17 @@ export interface GlobalState {
 
   notify: (msg: string, type?: 'success' | 'error') => void;
   sendWhatsApp: (phone: string, message: string) => void;
+
+  // v1.1 Inventory & DiezmoAnexo
+  inventoryItems: InventoryItem[];
+  addInventoryItem: (item: InventoryItem) => void;
+  updateInventoryItem: (id: string, data: Partial<InventoryItem>) => void;
+  deleteInventoryItem: (id: string) => void;
+
+  diezmoAnexos: DiezmoAnexo[];
+  addDiezmoAnexo: (item: DiezmoAnexo) => void;
+  updateDiezmoAnexo: (id: string, data: Partial<DiezmoAnexo>) => void;
+
+  // v1.1 Batch Operations
+  updateMemberBatchFidelity: (updates: { memberId: string, status: FidelidadEstado }[]) => void;
 }

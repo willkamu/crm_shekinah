@@ -1,5 +1,5 @@
 
-import { Anexo, Member, SpiritualStatus, Event, EventType, Course, Ministry, TeachingHouse, FinanceTransaction, IntercesionGroup, EpmiEnrollment, IntercesionLog, MissionTrip, HistoryRecord, Notification, MonthlyReport } from '../types';
+import { Anexo, Member, SpiritualStatus, Event, EventType, Course, Ministry, TeachingHouse, FinanceTransaction, IntercesionGroup, EpmiEnrollment, IntercesionLog, MissionTrip, HistoryRecord, Notification, MonthlyReport, SystemUser } from '../types';
 
 export const MOCK_ANEXOS: Anexo[] = [
   { id: 'ANX-01', nombre: 'Sede Central', tipo: 'LIMA', ubicacion: 'Av. Principal 100', liderId: 'MEM-001', liderNombre: 'Pastor Principal', telefono: '999-999-999', horario: 'Dom 10am, Mie 7pm' },
@@ -248,4 +248,12 @@ export const MOCK_NOTIFICATIONS: Notification[] = [
   { id: 'NOT-1', type: 'ALERT', title: 'Viaje Pendiente', message: 'Uchus - Ancash requiere aprobación final de lista.', date: 'Hace 2h', read: false, linkTo: '/viajes' },
   { id: 'NOT-2', type: 'INFO', title: 'Reporte Financiero', message: 'El anexo Piedra Liza subió su reporte mensual.', date: 'Hace 5h', read: false, linkTo: '/finances' },
   { id: 'NOT-3', type: 'SUCCESS', title: 'Nuevo Candidato', message: 'Maria Gonzalez cumple requisitos para EPMI.', date: 'Ayer', read: true, linkTo: '/epmi' }
+];
+
+// PDF Part 8.2: System Users for Admin Access
+export const MOCK_SYSTEM_USERS: SystemUser[] = [
+  { id: 'USR-000', email: 'wilbercamargo@gmail.com', password: 'admin', role: 'PASTOR_PRINCIPAL', name: 'Wilber Camargo', anexoId: 'ALL', memberId: 'MEM-001' },
+  { id: 'USR-001', email: 'pastor@shekinah.com', password: 'admin', role: 'PASTOR_PRINCIPAL', name: 'Pastor Cobertura', anexoId: 'ALL' },
+  { id: 'USR-002', email: 'lider@shekinah.com', password: 'demo', role: 'LIDER_ANEXO', name: 'Hno. Roberto', anexoId: 'ANX-02', memberId: 'MEM-003' },
+  { id: 'USR-003', email: 'maestro@shekinah.com', password: 'demo', role: 'MAESTRO_CASA', name: 'Hna. Rosa', anexoId: 'ANX-01', memberId: 'MEM-006' },
 ];
