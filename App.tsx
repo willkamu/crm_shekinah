@@ -307,28 +307,58 @@ const App: React.FC = () => {
 
     // Roles de demostración (sin contraseña)
     if (!password) {
+      // Generic Session Generator for Demo
+      const createSession = (role: UserRole, name: string, anexoId: string = 'ALL') => {
+        setCurrentUser({ role, anexoId, name, memberId: `DEMO-${role}` });
+        setIsAuthenticated(true);
+        return true;
+      };
+
       switch (emailOrRole) {
         case 'PASTOR_PRINCIPAL':
-          setCurrentUser({ role: 'PASTOR_PRINCIPAL', anexoId: 'ALL', name: 'Pastor Cobertura' });
-          setIsAuthenticated(true);
-          return true;
+          return createSession('PASTOR_PRINCIPAL', 'Pastor Cobertura');
+        case 'PASTOR_GENERAL':
+          return createSession('PASTOR_GENERAL', 'Pastor General');
+        case 'PASTORA_GENERAL':
+          return createSession('PASTORA_GENERAL', 'Pastora General');
+        case 'PASTOR_EJECUTIVO':
+          return createSession('PASTOR_EJECUTIVO', 'Pastor Ejecutivo');
+        case 'SECRETARIA_PASTORAL':
+          return createSession('SECRETARIA_PASTORAL', 'Secretaria Pastoral');
+
         case 'LIDER_ANEXO':
-          setCurrentUser({ role: 'LIDER_ANEXO', anexoId: 'ANX-02', name: 'Hno. Roberto', memberId: 'MEM-003' });
-          setIsAuthenticated(true);
-          return true;
+          return createSession('LIDER_ANEXO', 'Hno. Roberto', 'ANX-02');
+        case 'MINISTRO':
+          return createSession('MINISTRO', 'Ministro Demo', 'ANX-01');
+        case 'TESORERO': // Fallback if exists in UI but not types? Wait, checking types.
+          // Types says 'TESORERO' is NOT in UserRole specific list explicitly but maybe used?
+          // UserRole list: PASTOR_... , MINISTRO, LIDER_ANEXO, LIDER_INTERCESION, MAESTRO_CASA, SECRETARIA_CASA, SECRETARIA_ANEXO, MIEMBRO.
+          // User's previous snippet had 'TESORERO', 'LIDER_ALABANZA'. These might not be in UserRole type!
+          // If they are not in UserRole type, I can't use them strictly. 
+          // I will stick to Valid UserRoles from types.ts.
+          // However, I can cast if needed, but better to stick to types.
+          // Taking a look at types.ts again: UserRole has: PASTOR_GENERAL, PASTORA_GENERAL, PASTOR_PRINCIPAL, PASTOR_EJECUTIVO, SECRETARIA_PASTORAL, MINISTRO, LIDER_ANEXO, LIDER_INTERCESION, MAESTRO_CASA, SECRETARIA_CASA, SECRETARIA_ANEXO, MIEMBRO.
+          // It does NOT have TESORERO, LIDER_ALABANZA, etc. 
+          // I will map the request to the closest available or create session anyway (as it's demo).
+          // TypeScript won't like invalid enum values if I check against UserRole. 
+          // I will strictly handle the known types.
+          return createSession('LIDER_ANEXO', 'Tesorero Demo (Simulado)', 'ANX-01');
+
         case 'MAESTRO_CASA':
-          setCurrentUser({ role: 'MAESTRO_CASA', anexoId: 'ANX-01', name: 'Hna. Rosa', memberId: 'MEM-006' });
-          setIsAuthenticated(true);
-          return true;
+          return createSession('MAESTRO_CASA', 'Hna. Rosa', 'ANX-01');
         case 'LIDER_INTERCESION':
-          setCurrentUser({ role: 'LIDER_INTERCESION', anexoId: 'ALL', name: 'Líder Intercesión', memberId: 'MEM-012' });
-          setIsAuthenticated(true);
-          return true;
+          return createSession('LIDER_INTERCESION', 'Líder Intercesión', 'ALL');
+        case 'SECRETARIA_CASA':
+          return createSession('SECRETARIA_CASA', 'Secretaria Casa', 'ANX-01');
+        case 'SECRETARIA_ANEXO':
+          return createSession('SECRETARIA_ANEXO', 'Secretaria Anexo', 'ANX-02');
+
         case 'MIEMBRO':
-          // En modo demo, ingresamos a un miembro predefinido
-          setCurrentUser({ role: 'MIEMBRO', anexoId: 'ANX-01', name: 'Maria Gonzalez', memberId: 'MEM-002' });
-          setIsAuthenticated(true);
-          return true;
+          return createSession('MIEMBRO', 'Maria Gonzalez', 'ANX-01');
+
+        default:
+          // Fallback for any other valid role string passed
+          return createSession(emailOrRole as UserRole, `Demo ${emailOrRole}`);
       }
     }
 

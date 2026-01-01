@@ -181,8 +181,18 @@ const Settings: React.FC = () => {
         notify(createProfileMode ? "Usuario y Perfil de Miembro creados" : "Usuario creado y vinculado");
     };
 
+    // Notifications Preference
+    const [enableNotifications, setEnableNotifications] = useState(true);
+
+    const handleToggleNotifications = () => {
+        const newState = !enableNotifications;
+        setEnableNotifications(newState);
+        notify(newState ? "🔔 Notificaciones activadas" : "🔕 Notificaciones desactivadas");
+    };
+
     return (
         <div className="space-y-8 animate-fadeIn max-w-2xl mx-auto pb-10">
+            {/* ... (Header remains same) ... */}
             <div className="flex items-center gap-4">
                 <div className="bg-slate-100 p-3 rounded-2xl shadow-sm">
                     <User className="w-6 h-6 text-slate-600" />
@@ -226,7 +236,7 @@ const Settings: React.FC = () => {
                         <button onClick={() => setShowPasswordModal(true)} className="text-xs font-bold bg-slate-100 px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-200 cursor-pointer">Cambiar</button>
                     </div>
 
-                    <div className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-colors cursor-pointer group">
+                    <div className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-colors cursor-pointer group" onClick={handleToggleNotifications}>
                         <div className="flex items-center gap-4">
                             <div className="bg-slate-100 p-2.5 rounded-xl group-hover:bg-white transition-colors">
                                 <Bell className="w-5 h-5 text-slate-600" />
@@ -236,9 +246,10 @@ const Settings: React.FC = () => {
                                 <p className="text-xs text-slate-400">Alertas pastorales y avisos</p>
                             </div>
                         </div>
-                        <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                            <input type="checkbox" name="toggle" id="toggle" className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-blue-600" />
-                            <label htmlFor="toggle" className="toggle-label block overflow-hidden h-5 rounded-full bg-slate-300 cursor-pointer"></label>
+                        <div className="relative inline-block w-12 h-6 rounded-full bg-slate-200 transition-colors duration-200 ease-in-out cursor-pointer">
+                            <div
+                                className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform duration-200 ease-in-out ${enableNotifications ? 'translate-x-6 bg-blue-600' : 'translate-x-0'}`}
+                            ></div>
                         </div>
                     </div>
                 </div>

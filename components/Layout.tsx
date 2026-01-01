@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../App.tsx';
 import {
   LayoutDashboard,
@@ -30,6 +30,32 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  // Refs for click-outside detection
+  const notificationRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target as Node)
+      ) {
+        setShowNotifications(false);
+      }
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Menú ESTRICTO según Manual (Parte 12.1 y 12.3)
   const navItems = [
@@ -124,7 +150,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar space-y-1.5">
           {filteredNavItems.map((item) => (
             <Link
               key={item.label}
@@ -174,7 +200,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <Wifi className="w-3.5 h-3.5" /> <span>En Línea</span>
             </div>
 
-            <div className="relative">
+            <div className="relative" ref={notificationRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="p-2.5 relative hover:bg-slate-100 rounded-xl transition-all active:scale-95 group cursor-pointer"
@@ -225,7 +251,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               )}
             </div>
 
-            <div className="relative">
+            <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 className="flex items-center gap-3 pl-6 border-l border-slate-200 hover:opacity-80 transition-opacity cursor-pointer"

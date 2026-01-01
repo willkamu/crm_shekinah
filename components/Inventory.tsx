@@ -135,17 +135,48 @@ const Inventory: React.FC = () => {
         return items;
     }, [inventoryItems, currentUser, currentUser.anexoId, teachingHouses, searchTerm, filterScope]);
 
+    // v2.1 Smart Scope Defaulting
     const handleOpenWizard = () => {
         setWizardStep(1);
         setPendingItems([]);
+
+        // Determinar contexto por defecto según rol
+        let defaultType: 'ANEXO' | 'CASA_ENSENANZA' = 'ANEXO';
+        let defaultId = currentUser.anexoId !== 'ALL' ? currentUser.anexoId : '';
+
+        if (currentUser.role === 'MAESTRO_CASA') {
+            const myHouse = teachingHouses.find(h => h.maestroId === currentUser.memberId);
+            if (myHouse) {
+                defaultType = 'CASA_ENSENANZA';
+                defaultId = myHouse.id;
+            }
+        }
+
         setBatchContext({
             fecha: new Date().toISOString().split('T')[0],
-            scope_tipo: 'ANEXO',
-            scope_id: currentUser.anexoId !== 'ALL' ? currentUser.anexoId : '',
+            scope_tipo: defaultType,
+            scope_id: defaultId,
             responsable_id: currentUser.memberId || ''
         });
         setIsWizardOpen(true);
     };
+
+    // v2.2 Filter Members by Scope (Fixes Issue #2)
+    const availableMembers = useMemo(() => {
+        if (!batchContext.scope_id) return members;
+
+        if (batchContext.scope_tipo === 'CASA_ENSENANZA') {
+            // Members of this house OR the leader (maestro)
+            const house = teachingHouses.find(h => h.id === batchContext.scope_id);
+            return members.filter(m =>
+                m.teachingHouseId === batchContext.scope_id ||
+                (house && m.id === house.maestroId)
+            );
+        } else {
+            // Members of this Anexo
+            return members.filter(m => m.anexoId === batchContext.scope_id);
+        }
+    }, [members, batchContext.scope_id, batchContext.scope_tipo, teachingHouses]);
 
     const handleEditItem = (item: InventoryItem) => {
         setEditingItem(item);
@@ -527,7 +558,7 @@ const Inventory: React.FC = () => {
                                             <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Responsable Principal</label>
                                             <select value={batchContext.responsable_id} onChange={e => setBatchContext({ ...batchContext, responsable_id: e.target.value })} className="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-slate-700">
                                                 <option value="">Seleccionar...</option>
-                                                {members.map(m => <option key={m.id} value={m.id}>{m.nombres} {m.apellidos}</option>)}
+                                                {availableMembers.map(m => <option key={m.id} value={m.id}>{m.nombres} {m.apellidos}</option>)}
                                             </select>
                                         </div>
                                         <div className="col-span-2">

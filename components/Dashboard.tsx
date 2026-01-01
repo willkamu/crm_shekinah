@@ -16,7 +16,7 @@ const Dashboard: React.FC = () => {
     // Create House Modal State
     const [isCreateHouseOpen, setIsCreateHouseOpen] = useState(false);
     const [newHouseName, setNewHouseName] = useState('');
-    const [newHouseName, setNewHouseName] = useState('');
+
     // v2.0 Dashboard House Creation Update
     const [newHouseMaestroId, setNewHouseMaestroId] = useState('');
     const [tempSchedule, setTempSchedule] = useState<{ day: string, time: string, type: string }[]>([]);
